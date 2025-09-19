@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Default debugger for apphub-app-creator",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/apphub-app-creator/apphub-app-creator.go",
+            "args": [
+                "apps",
+                "generate"
+            ]
+        }
+    ]
+}
