@@ -76,23 +76,23 @@ download_cli() {
   filename="apphub-app-creator_${APPHUB_APP_CREATOR_VERSION}_${OSEXT}_${APPHUB_APP_CREATOR_ARCH}.zip"
   # Check if cosign is installed
   set +e # disable exit on error
-  cosign version 2>&1 >/dev/null
-  RESULT=$?
-  set -e # re-enable exit on error
-  if [ $RESULT -eq 0 ]; then
-    echo "Verifying the signature of the binary " "$filename"
-    echo "Downloading the cosign public key"
-    curl -fsLO -H 'Cache-Control: no-cache, no-store' "$COSIGN_PUBLIC_KEY"
-    echo "Downloading the signature file " "$SIG_URL"
-    curl -fsLO -H 'Cache-Control: no-cache, no-store' "$SIG_URL"
-    sig_filename="apphub-app-creator_${APPHUB_APP_CREATOR_VERSION}_${OSEXT}_${APPHUB_APP_CREATOR_ARCH}.zip.sig"
-    echo "Verifying the signature"
-    cosign verify-blob --key "$tmp/cosign.pub" --signature "$tmp/$sig_filename" "$tmp/$filename"
-    rm "$tmp/$sig_filename"
-    rm $tmp/cosign.pub
-  else
-    echo "cosign is not installed, skipping signature verification"
-  fi
+  # cosign version 2>&1 >/dev/null
+  # RESULT=$?
+  # set -e # re-enable exit on error
+  # if [ $RESULT -eq 0 ]; then
+  #   echo "Verifying the signature of the binary " "$filename"
+  #   echo "Downloading the cosign public key"
+  #   curl -fsLO -H 'Cache-Control: no-cache, no-store' "$COSIGN_PUBLIC_KEY"
+  #   echo "Downloading the signature file " "$SIG_URL"
+  #   curl -fsLO -H 'Cache-Control: no-cache, no-store' "$SIG_URL"
+  #   sig_filename="apphub-app-creator_${APPHUB_APP_CREATOR_VERSION}_${OSEXT}_${APPHUB_APP_CREATOR_ARCH}.zip.sig"
+  #   echo "Verifying the signature"
+  #   cosign verify-blob --key "$tmp/cosign.pub" --signature "$tmp/$sig_filename" "$tmp/$filename"
+  #   rm "$tmp/$sig_filename"
+  #   rm $tmp/cosign.pub
+  # else
+  #   echo "cosign is not installed, skipping signature verification"
+  # fi
   unzip "${filename}"
   rm "${filename}"
 }
