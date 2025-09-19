@@ -2,8 +2,6 @@ module github.com/srinandan/apphub-app-creator
 
 go 1.24.4
 
-toolchain go1.24.4
-
 require internal/cmd v1.0.0
 
 replace internal/cmd => ./internal/cmd
