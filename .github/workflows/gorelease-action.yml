@@ -43,13 +43,35 @@ jobs:
       - name: Write private key to disk
         run: echo "${{ secrets.COSIGN_PRIVATE_KEY }}" > /tmp/cosign.key
 
+      - name: Generate Third Part Licenses
+        env:
+          GH_TOKEN: ${{ secrets.TOKEN }}
+        run: |
+          SHORT_SHA=$(git rev-parse --short $GITHUB_SHA)
+          git config pull.rebase false
+          git config --global user.name "$(git log -n 1 --pretty=format:%an)"
+          git config --global user.email "$(git log -n 1 --pretty=format:%ae)"
+
+          git fetch origin main
+          git fetch origin gh_pages
+          git checkout gh_pages
+          git merge -X theirs origin/main --allow-unrelated-histories
+
+          GOBIN=/tmp/ go install github.com/google/go-licenses@v1.6.0
+          /tmp/go-licenses report ./... --template .github/workflows/licenses.tpl --ignore internal > third-party-licenses.txt 2> /dev/null || echo "Ignore warnings"
+          # /tmp/go-licenses save ./cmd/apigeecli --save_path=third-party --force || echo "Ignore warnings"
+
+          # git add third-party third-party-licenses.txt
+          git add third-party-licenses.txt
+          git commit -m "generate licenses - $SHORT_SHA" || echo "No Changes in license"
+
     #  - uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da #v3.7.0
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@286f3b13b1b49da4ac219696163fb8c1c93e1200 #v6
         with:
           distribution: goreleaser
-          version: latest
+          version: 2
           args: release --clean
         env:
     #      COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
