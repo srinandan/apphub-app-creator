@@ -53,13 +53,12 @@ jobs:
           git config --global user.email "$(git log -n 1 --pretty=format:%ae)"
 
           git fetch origin main
-          git fetch origin gh_pages
-          git checkout gh_pages
+          git fetch origin licenses
+          git checkout licenses
           git merge -X theirs origin/main --allow-unrelated-histories
 
           GOBIN=/tmp/ go install github.com/google/go-licenses@v1.6.0
           /tmp/go-licenses report ./... --template .github/workflows/licenses.tpl --ignore internal > third-party-licenses.txt 2> /dev/null || echo "Ignore warnings"
-          # /tmp/go-licenses save ./cmd/apigeecli --save_path=third-party --force || echo "Ignore warnings"
 
           # git add third-party third-party-licenses.txt
           git add third-party-licenses.txt
