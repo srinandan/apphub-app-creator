@@ -28,20 +28,12 @@ import (
 
 // lookupDiscoveredService finds a DiscoveredService or Workload resource in App Hub based on its underlying resource URI.
 // The DiscoveredService/Workload represents an existing GCP resource (like a Cloud Run service) that App Hub is aware of.
-func lookupDiscoveredServiceOrWOrkload(projectID, region, resourceURI, appHubType string) (string, error) {
+func lookupDiscoveredServiceOrWOrkload(apiclient *apphub.Client, projectID, region, resourceURI, appHubType string) (string, error) {
 	ctx := context.Background()
 
 	logger := clilog.GetLogger()
 
-	// 1. Initialize the App Hub client
-	// Requires the 'cloud.google.com/go/apphub/apiv1' module.
-	apiclient, err := apphub.NewClient(ctx)
-	if err != nil {
-		return "", fmt.Errorf("failed to create App Hub client: %w", err)
-	}
-	defer apiclient.Close()
-
-	// 2. Construct the parent path and request
+	// Construct the parent path and request
 	// Parent format: projects/{project}/locations/{location}
 	parent := fmt.Sprintf("projects/%s/locations/%s", projectID, region)
 
@@ -54,7 +46,7 @@ func lookupDiscoveredServiceOrWOrkload(projectID, region, resourceURI, appHubTyp
 
 		logger.Info("Looking up Discovered Service for URI", parent, resourceURI)
 
-		// 3. Call the LookupDiscoveredService API
+		// Call the LookupDiscoveredService API
 		response, err := apiclient.LookupDiscoveredService(ctx, req)
 		if err != nil {
 			// Check for specific gRPC error codes
@@ -68,7 +60,7 @@ func lookupDiscoveredServiceOrWOrkload(projectID, region, resourceURI, appHubTyp
 			return "", fmt.Errorf("app hub lookup API failed: %w", err)
 		}
 
-		// 4. Check if a Discovered Service was returned and return its Name
+		// Check if a Discovered Service was returned and return its Name
 		discoveredService := response.GetDiscoveredService()
 		if discoveredService == nil {
 			return "", fmt.Errorf("discovered service not found for URI: %s", resourceURI)
@@ -108,23 +100,17 @@ func lookupDiscoveredServiceOrWOrkload(projectID, region, resourceURI, appHubTyp
 
 // getOrCreateAppHubApplication attempts to retrieve an App Hub application by name.
 // If it does not exist, it creates a new one and waits for the operation to complete.
-func getOrCreateAppHubApplication(projectID, region, appID string, data []byte) (*apphubpb.Application, error) {
+func getOrCreateAppHubApplication(apiclient *apphub.Client, projectID, region, appID string, data []byte) (*apphubpb.Application, error) {
 	ctx := context.Background()
 
 	logger := clilog.GetLogger()
 
-	apiclient, err := apphub.NewClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create App Hub client: %w", err)
-	}
-	defer apiclient.Close()
-
-	// 1. Construct the full resource name for the Application
+	// Construct the full resource name for the Application
 	// Name format: projects/{project}/locations/{location}/applications/{application_id}
 	applicationName := fmt.Sprintf("projects/%s/locations/%s/applications/%s", projectID, region, appID)
 	parent := fmt.Sprintf("projects/%s/locations/%s", projectID, region)
 
-	// --- 2. Check if the Application already exists (GET call) ---
+	// Check if the Application already exists (GET call) ---
 	getApplicationReq := &apphubpb.GetApplicationRequest{
 		Name: applicationName,
 	}
@@ -147,7 +133,7 @@ func getOrCreateAppHubApplication(projectID, region, appID string, data []byte) 
 
 	logger.Info("Application not found. Creating new application...", "app-name", applicationName)
 
-	// --- 3. Create the Application (CREATE call, which returns an LRO) ---
+	// Create the Application (CREATE call, which returns an LRO) ---
 	createApplicationReq := &apphubpb.CreateApplicationRequest{
 		Parent:        parent,
 		ApplicationId: appID,
@@ -180,22 +166,16 @@ func getOrCreateAppHubApplication(projectID, region, appID string, data []byte) 
 
 // registerServiceWithApplication registers a Discovered Service as an App Hub Service
 // within a specified Application.
-func registerServiceWithApplication(projectID, region, appID, discoveredName, displayName, appHubType string, data []byte) error {
+func registerServiceWithApplication(apiclient *apphub.Client, projectID, region, appID, discoveredName, displayName, appHubType string, data []byte) error {
 	ctx := context.Background()
 
 	logger := clilog.GetLogger()
 
-	apiclient, err := apphub.NewClient(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to create App Hub client: %w", err)
-	}
-	defer apiclient.Close()
-
-	// 1. Determine the Service Parent (The Application Path)
+	// Determine the Service Parent (The Application Path)
 	// Parent format: projects/{project}/locations/{location}/applications/{application_id}
 	parent := fmt.Sprintf("projects/%s/locations/%s/applications/%s", projectID, region, appID)
 
-	// 2. Determine the Service ID from the Discovered Service Name.
+	// Determine the Service ID from the Discovered Service Name.
 	// Discovered Service Name format: projects/{p}/locations/{r}/discoveredServices/{ds_id}
 	// We use the ds_id as the Service ID.
 	parts := strings.Split(discoveredName, "/")
@@ -204,7 +184,7 @@ func registerServiceWithApplication(projectID, region, appID, discoveredName, di
 	}
 	id := parts[5] // The ID is the 6th element in the path array (0-indexed)
 
-	// 3. Construct the CreateService Request
+	// Construct the CreateService Request
 	logger.Info("Registering into Application", appHubType, id, "app-name", appID)
 
 	attr, err := newAttributesFromBytes(data)
@@ -225,7 +205,7 @@ func registerServiceWithApplication(projectID, region, appID, discoveredName, di
 			},
 		}
 
-		// 4. Call the CreateService API (LRO)
+		// Call the CreateService API (LRO)
 		op, err := apiclient.CreateService(ctx, req)
 		if err != nil {
 			// Check for ALREADY_EXISTS if the service is already registered to this app
@@ -238,7 +218,7 @@ func registerServiceWithApplication(projectID, region, appID, discoveredName, di
 
 		logger.Info("Service registration started. Waiting for completion...", "op-name", op.Name())
 
-		// 5. Wait for the LRO to complete
+		// Wait for the LRO to complete
 		createdService, err := op.Wait(ctx)
 		if err != nil {
 			return fmt.Errorf("service registration failed during wait: %w", err)
@@ -258,7 +238,7 @@ func registerServiceWithApplication(projectID, region, appID, discoveredName, di
 			},
 		}
 
-		// 4. Call the CreateWorkload API (LRO)
+		// Call the CreateWorkload API (LRO)
 		op, err := apiclient.CreateWorkload(ctx, req)
 		if err != nil {
 			// Check for ALREADY_EXISTS if the workload is already registered to this app
@@ -271,7 +251,7 @@ func registerServiceWithApplication(projectID, region, appID, discoveredName, di
 
 		logger.Info("Workload registration started. Waiting for completion...", "op-name", op.Name())
 
-		// 5. Wait for the LRO to complete
+		// Wait for the LRO to complete
 		createdWorkload, err := op.Wait(ctx)
 		if err != nil {
 			return fmt.Errorf("workload registration failed during wait: %w", err)
@@ -280,4 +260,18 @@ func registerServiceWithApplication(projectID, region, appID, discoveredName, di
 		logger.Info("Workload successfully registered to application.", "workload", createdWorkload.Name, "app-name", appID)
 		return nil
 	}
+}
+
+func getAppHubClient() (*apphub.Client, error) {
+	ctx := context.Background()
+
+	apiclient, err := apphub.NewClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create App Hub client: %w", err)
+	}
+	return apiclient, nil
+}
+
+func closeAppHubClient(apiclient *apphub.Client) {
+	apiclient.Close()
 }

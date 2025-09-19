@@ -28,18 +28,26 @@ var GenAppsCmd = &cobra.Command{
 	Short: "Generate App Hub Applications",
 	Long:  "Generate App Hub Applications based on CAIS Asset Search",
 	Args: func(cmd *cobra.Command, args []string) (err error) {
+		labelKey := GetStringParam(cmd.Flag("label-key"))
+		tagKey := GetStringParam(cmd.Flag("tag-key"))
+		contains := GetStringParam(cmd.Flag("contains"))
+
 		if project == "" {
 			return fmt.Errorf("project-id is a required field")
 		}
 		if region == "" {
 			return fmt.Errorf("region is a required field")
 		}
+		if labelKey == "" && tagKey == "" && contains == "" {
+			return fmt.Errorf("label-key or tag-key or contains is a required field")
+		}
 		return
 	},
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		labelKey := GetStringParam(cmd.Flag("label-key"))
+		tagKey := GetStringParam(cmd.Flag("tag-key"))
 		attributes := GetStringParam(cmd.Flag("attributes"))
-
+		contains := GetStringParam(cmd.Flag("contains"))
 		var data []byte
 
 		if managementProject == "" {
@@ -57,7 +65,13 @@ var GenAppsCmd = &cobra.Command{
 			}
 		}
 
-		err = client.GenerateAppsByLabel(project, managementProject, region, labelKey, data)
+		err = client.GenerateAppsByLabel(project,
+			managementProject,
+			region,
+			labelKey,
+			tagKey,
+			contains,
+			data)
 		if err != nil {
 			return
 		}
@@ -66,12 +80,15 @@ var GenAppsCmd = &cobra.Command{
 }
 
 func init() {
-	var labelKey, attributes string
+	var labelKey, tagKey, attributes, contains string
 
 	GenAppsCmd.Flags().StringVarP(&labelKey, "label-key", "l",
 		"", "GCP Resource Label Key to filter CAIS Resource")
+	GenAppsCmd.Flags().StringVarP(&tagKey, "tag-key", "t",
+		"", "GCP Resource Tag Key to filter CAIS Resource")
+	GenAppsCmd.Flags().StringVarP(&contains, "contains", "c",
+		"", "GCP Resources whose name contains the string")
 	GenAppsCmd.Flags().StringVarP(&attributes, "attributes", "a",
 		"", "Path to a json file containing App Hub attributes")
 
-	_ = GenAppsCmd.MarkFlagRequired("label-key")
 }

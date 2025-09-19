@@ -19,7 +19,7 @@ curl -L https://raw.githubusercontent.com/srinandan/apphub-app-creator/main/down
 or
 
 ```sh
-docker run -ti ghcr.io/srinandan/apphub-app-creator:latest apps generate --help
+docker run -ti --rm ghcr.io/srinandan/apphub-app-creator:latest apps generate --help
 ```
 
 ## Usage
@@ -45,7 +45,8 @@ The `generate` command requires the following flags:
 
 * `--project-id`: (Required) The GCP project ID where the resources are located.
 * `--region`: (Required) The GCP region for the App Hub application.
-* `--label-key`: (Required) The GCP resource label key to filter resources from Cloud Asset Inventory.
+* `--label-key`: (Optional) The GCP resource label key to filter resources from Cloud Asset Inventory.
+* `--tag-key`: (Optional) The GCP resource tag key to filter resources from Cloud Asset Inventory.
 * `--management-project`: (Optional) The project where App Hub is managed. Defaults to the `--project-id`.
 * `--attributes-file`: (Optional) Path to a JSON file containing App Hub application attributes.
 
@@ -54,10 +55,10 @@ The `generate` command requires the following flags:
 To create App Hub applications for all resources in `my-gcp-project` that have the label `app-name`, you would run:
 
 ```shell
-docker run gcr.io/distroless/static-debian11 apphub-app-creator generate \
+docker run -it --rm ghcr.io/srinandan/apphub-app-creator:latest apps generate \
     --project-id="my-gcp-project" \
     --region="us-central1" \
-    --label-key="app-name"
+    --label-key="appid"
 ```
 
 This will:

@@ -28,47 +28,60 @@ import (
 
 var INCLUDED_ASSETS = []string{
 	"run.googleapis.com/Service",
+	"compute.googleapis.com/ForwardingRule",
+	"apps.k8s.io/Deployment",
+	"apps.k8s.io/DaemonSet",
+	"apps.k8s.io/StatefulSet",
+	"run.googleapis.com/Job",
+	"compute.googleapis.com/InstanceGroup",
 	"sqladmin.googleapis.com/Instance",
 	"storage.googleapis.com/Bucket",
 	"spanner.googleapis.com/Instance",
 	"run.googleapis.com/Job",
 }
 
+var MAX_PAGE int32 = 1000
+
 // searchAssets queries the Cloud Asset Inventory for resources within a specific project
-// and region, optionally applying an additional query filter.
-//
-// The region filter is implemented using the CAIS Query Language: "location:{region}".
-func searchAssets(projectID, region, labelKey string) ([]*assetpb.ResourceSearchResult, error) {
+// and region
+func searchAssets(projectID, region, labelKey, tagKey, contains string) ([]*assetpb.ResourceSearchResult, error) {
 	ctx := context.Background()
 
 	logger := clilog.GetLogger()
-	// 1. Initialize the Asset Service client
-	// The client automatically picks up credentials from the environment (e.g., Application Default Credentials).
+	// Initialize the Asset Service client
 	client, err := asset.NewClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create asset client: %w", err)
 	}
 	defer client.Close()
 
-	// 2. Construct the search scope and query
-	// The scope is the resource under which to search (Project, Folder, or Organization).
+	// Construct the search scope and query
 	scope := fmt.Sprintf("projects/%s", projectID)
 
-	// Build the full search query: location filter is mandatory, additional query is optional.
-	queryParts := []string{fmt.Sprintf("location:%s", region), fmt.Sprintf("labels.%s:*", labelKey)}
+	// Build the full search query.
+	queryParts := []string{fmt.Sprintf("location:%s", region)}
+
+	if labelKey != "" {
+		queryParts = append(queryParts, fmt.Sprintf("labels.%s:*", labelKey))
+	} else if tagKey != "" {
+		queryParts = append(queryParts, fmt.Sprintf("tagKeys.%s:*", tagKey))
+	} else if contains != "" {
+		queryParts = append(queryParts, fmt.Sprintf("name:%s", contains))
+	}
 
 	fullQuery := strings.Join(queryParts, " AND ")
 
 	logger.Info("Searching scope with query", "scope", scope, "query", fullQuery)
 
-	// 3. Construct the search request
+	// Construct the search request
 	req := &assetpb.SearchAllResourcesRequest{
 		Scope:      scope,
 		Query:      fullQuery,
 		AssetTypes: INCLUDED_ASSETS,
+		PageSize:   MAX_PAGE,
 	}
 
-	// 4. Call SearchAllResources and iterate over the results
+	// Call SearchAllResources and iterate over the results
 	var assets []*assetpb.ResourceSearchResult
 	it := client.SearchAllResources(ctx, req)
 
