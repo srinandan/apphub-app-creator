@@ -37,11 +37,12 @@ import (
 var searchAssetsFunc = searchAssets
 var getAppHubClientFunc = getAppHubClient
 
-func GenerateApps(projectID, managementProject, region, labelKey, tagKey, contains string, attributesData, assetTypesData []byte) error {
+func GenerateApps(projectID, managementProject, labelKey, labelValue, tagKey, tagValue, contains string, locations []string, attributesData, assetTypesData []byte) error {
 	logger := clilog.GetLogger()
+	var appLocation string
 
-	logger.Info("Running Search with Region and Filters")
-	assets, err := searchAssetsFunc(projectID, region, labelKey, tagKey, contains, assetTypesData)
+	logger.Info("Running Search with location and Filters")
+	assets, err := searchAssetsFunc(projectID, labelKey, labelValue, tagKey, tagValue, contains, locations, assetTypesData)
 	if err != nil {
 		return fmt.Errorf("error searching assets: %w", err)
 	}
@@ -58,6 +59,12 @@ func GenerateApps(projectID, managementProject, region, labelKey, tagKey, contai
 
 	defer closeAppHubClient(apphubClient)
 
+	if len(locations) > 0 {
+		appLocation = "global"
+	} else {
+		appLocation = locations[0]
+	}
+
 	// For each asset returned
 	for _, asset := range assets {
 		var discoveredName string
@@ -66,7 +73,7 @@ func GenerateApps(projectID, managementProject, region, labelKey, tagKey, contai
 
 		// Lookup App Hub to get the discovered name
 		if discoveredName, err = lookupDiscoveredServiceOrWorkload(apphubClient, managementProject,
-			region,
+			asset.Location,
 			asset.Name,
 			appHubType); err != nil {
 			logger.Warn("Discovered Service not found, perhaps already registered")
@@ -75,14 +82,14 @@ func GenerateApps(projectID, managementProject, region, labelKey, tagKey, contai
 		if discoveredName != "" {
 			labelValue := asset.GetLabels()[labelKey]
 			// create the application if it does not exist
-			if _, err = getOrCreateAppHubApplication(apphubClient, managementProject, region, labelValue, attributesData); err != nil {
+			if _, err = getOrCreateAppHubApplication(apphubClient, managementProject, appLocation, labelValue, attributesData); err != nil {
 				return fmt.Errorf("error creating application: %w", err)
 			}
 			displayName := asset.Name[strings.LastIndex(asset.Name, "/")+1:]
 
 			// Registry the service or workload
 			if err = registerServiceWithApplication(apphubClient, managementProject,
-				region,
+				appLocation,
 				labelValue,
 				discoveredName,
 				displayName,

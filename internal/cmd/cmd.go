@@ -26,14 +26,15 @@ var Cmd = &cobra.Command{
 	Long:    "Manage App Hub Applications",
 }
 
-var project, region, managementProject string
+var project, managementProject string
+var locations []string
 
 func init() {
-	Cmd.PersistentFlags().StringVarP(&project, "project", "p",
+	Cmd.PersistentFlags().StringVarP(&project, "project", "",
 		"", "GCP Project name for CAIS Asset Search")
-	Cmd.PersistentFlags().StringVarP(&region, "region", "r",
-		"", "GCP Region name to filter CAIS Asset Search (e.g. us-central1)")
-	Cmd.PersistentFlags().StringVarP(&managementProject, "management-project", "m",
+	Cmd.PersistentFlags().StringArrayVarP(&locations, "locations", "",
+		[]string{}, "GCP location names to filter CAIS Asset Search (e.g. us-central1)")
+	Cmd.PersistentFlags().StringVarP(&managementProject, "management-project", "",
 		"", "App Hub Management Project Id; defaults to project")
 
 	Cmd.AddCommand(GenAppsCmd)

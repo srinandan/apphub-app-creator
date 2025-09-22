@@ -52,10 +52,11 @@ var INCLUDED_ASSETS = []string{
 var MAX_PAGE int32 = 1000
 
 // searchAssets queries the Cloud Asset Inventory for resources within a specific project
-// and region
-func searchAssets(projectID, region, labelKey, tagKey, contains string, assetTypesData []byte) ([]*assetpb.ResourceSearchResult, error) {
+// and location
+func searchAssets(projectID, labelKey, labelValue, tagKey, tagValue, contains string, locations []string, assetTypesData []byte) ([]*assetpb.ResourceSearchResult, error) {
 	ctx := context.Background()
 	var searchAssetTypes []string
+	var queryParts []string
 
 	logger := clilog.GetLogger()
 	// Initialize the Asset Service client
@@ -69,12 +70,24 @@ func searchAssets(projectID, region, labelKey, tagKey, contains string, assetTyp
 	scope := fmt.Sprintf("projects/%s", projectID)
 
 	// Build the full search query.
-	queryParts := []string{fmt.Sprintf("location:%s", region)}
+	if len(locations) > 1 {
+		queryParts = append(queryParts, fmt.Sprintf("location:(%s)", strings.Join(locations, " OR ")))
+	} else {
+		queryParts = []string{fmt.Sprintf("location:%s", locations[0])}
+	}
 
 	if labelKey != "" {
-		queryParts = append(queryParts, fmt.Sprintf("labels.%s:*", labelKey))
+		if labelValue != "" {
+			queryParts = append(queryParts, fmt.Sprintf("labels.%s:%s", labelKey, labelValue))
+		} else {
+			queryParts = append(queryParts, fmt.Sprintf("labels.%s:*", labelKey))
+		}
 	} else if tagKey != "" {
-		queryParts = append(queryParts, fmt.Sprintf("tagKeys.%s:*", tagKey))
+		if tagValue != "" {
+			queryParts = append(queryParts, fmt.Sprintf("tagKeys.%s:%s", tagKey, tagValue))
+		} else {
+			queryParts = append(queryParts, fmt.Sprintf("tagKeys.%s:*", tagKey))
+		}
 	} else if contains != "" {
 		queryParts = append(queryParts, fmt.Sprintf("name:%s", contains))
 	}

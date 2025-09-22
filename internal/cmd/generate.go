@@ -29,23 +29,36 @@ var GenAppsCmd = &cobra.Command{
 	Long:  "Generate App Hub Applications based on CAIS Asset Search",
 	Args: func(cmd *cobra.Command, args []string) (err error) {
 		labelKey := GetStringParam(cmd.Flag("label-key"))
+		labelValue := GetStringParam(cmd.Flag("label-value"))
 		tagKey := GetStringParam(cmd.Flag("tag-key"))
+		tagValue := GetStringParam(cmd.Flag("tag-value"))
 		contains := GetStringParam(cmd.Flag("contains"))
 
 		if project == "" {
-			return fmt.Errorf("project-id is a required field")
+			return fmt.Errorf("project is a required field")
 		}
-		if region == "" {
-			return fmt.Errorf("region is a required field")
+		if len(locations) == 0 {
+			return fmt.Errorf("at least one location is required")
 		}
 		if labelKey == "" && tagKey == "" && contains == "" {
 			return fmt.Errorf("label-key or tag-key or contains is a required field")
+		}
+		if (labelKey != "" && tagKey != "") || (labelKey != "" && contains != "") || (tagKey != "" && contains != "") {
+			return fmt.Errorf("only one of label-key, tag-key, or contains is allowed")
+		}
+		if labelValue != "" && labelKey == "" {
+			return fmt.Errorf("label-value must be used with label-key")
+		}
+		if tagValue != "" && tagKey == "" {
+			return fmt.Errorf("tag-value must be used with tag-key")
 		}
 		return
 	},
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		labelKey := GetStringParam(cmd.Flag("label-key"))
+		labelValue := GetStringParam(cmd.Flag("label-value"))
 		tagKey := GetStringParam(cmd.Flag("tag-key"))
+		tagValue := GetStringParam(cmd.Flag("tag-value"))
 		attributes := GetStringParam(cmd.Flag("attributes"))
 		assetTypes := GetStringParam(cmd.Flag("asset-types"))
 		contains := GetStringParam(cmd.Flag("contains"))
@@ -79,10 +92,12 @@ var GenAppsCmd = &cobra.Command{
 
 		err = client.GenerateApps(project,
 			managementProject,
-			region,
 			labelKey,
+			labelValue,
 			tagKey,
+			tagValue,
 			contains,
+			locations,
 			attributesData,
 			assetTypesData)
 		if err != nil {
@@ -93,16 +108,20 @@ var GenAppsCmd = &cobra.Command{
 }
 
 func init() {
-	var labelKey, tagKey, attributes, contains, assetTypes string
+	var labelKey, tagKey, tagValue, attributes, contains, assetTypes, labelValue string
 
-	GenAppsCmd.Flags().StringVarP(&labelKey, "label-key", "l",
+	GenAppsCmd.Flags().StringVarP(&labelKey, "label-key", "",
 		"", "GCP Resource Label Key to filter CAIS Resource")
-	GenAppsCmd.Flags().StringVarP(&tagKey, "tag-key", "t",
+	GenAppsCmd.Flags().StringVarP(&labelValue, "label-value", "",
+		"", "GCP Resource Label Value to filter CAIS Resource; Must be used with label-key")
+	GenAppsCmd.Flags().StringVarP(&tagKey, "tag-key", "",
 		"", "GCP Resource Tag Key to filter CAIS Resource")
-	GenAppsCmd.Flags().StringVarP(&contains, "contains", "c",
+	GenAppsCmd.Flags().StringVarP(&tagValue, "tag-value", "",
+		"", "GCP Resource Tag Value to filter CAIS Resource; Must be used with tag-key")
+	GenAppsCmd.Flags().StringVarP(&contains, "contains", "",
 		"", "GCP Resources whose name contains the string")
-	GenAppsCmd.Flags().StringVarP(&attributes, "attributes", "a",
+	GenAppsCmd.Flags().StringVarP(&attributes, "attributes", "",
 		"", "Path to a json file containing App Hub attributes")
-	GenAppsCmd.Flags().StringVarP(&assetTypes, "asset-types", "s",
+	GenAppsCmd.Flags().StringVarP(&assetTypes, "asset-types", "",
 		"", "Path to a CSV file containing CAIS Asset Types")
 }

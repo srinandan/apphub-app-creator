@@ -1,4 +1,3 @@
-
 // Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,60 +23,60 @@ import (
 
 func TestGenAppsCmdArgs(t *testing.T) {
 	tests := []struct {
-		name    string
-		args    []string
-		project string
-		region  string
-		wantErr bool
+		name      string
+		args      []string
+		project   string
+		locations []string
+		wantErr   bool
 	}{
 		{
-			name:    "missing project",
-			args:    []string{"--region", "us-central1", "--label-key", "test"},
-			project: "",
-			region:  "us-central1",
-			wantErr: true,
+			name:      "missing project",
+			args:      []string{"--locations", "us-central1", "--label-key", "test"},
+			project:   "",
+			locations: []string{"us-central1"},
+			wantErr:   true,
 		},
 		{
-			name:    "missing region",
-			args:    []string{"--project", "test-project", "--label-key", "test"},
-			project: "test-project",
-			region:  "",
-			wantErr: true,
+			name:      "missing location",
+			args:      []string{"--project", "test-project", "--label-key", "test"},
+			project:   "test-project",
+			locations: []string{""},
+			wantErr:   true,
 		},
 		{
-			name:    "missing label-key, tag-key, or contains",
-			args:    []string{"--project", "test-project", "--region", "us-central1"},
-			project: "test-project",
-			region:  "us-central1",
-			wantErr: true,
+			name:      "missing label-key, tag-key, or contains",
+			args:      []string{"--project", "test-project", "--locations", "us-central1"},
+			project:   "test-project",
+			locations: []string{"us-central1"},
+			wantErr:   true,
 		},
 		{
-			name:    "valid args with label-key",
-			args:    []string{"--project", "test-project", "--region", "us-central1", "--label-key", "test"},
-			project: "test-project",
-			region:  "us-central1",
-			wantErr: false,
+			name:      "valid args with label-key",
+			args:      []string{"--project", "test-project", "--locations", "us-central1", "--label-key", "test"},
+			project:   "test-project",
+			locations: []string{"us-central1"},
+			wantErr:   false,
 		},
 		{
-			name:    "valid args with tag-key",
-			args:    []string{"--project", "test-project", "--region", "us-central1", "--tag-key", "test"},
-			project: "test-project",
-			region:  "us-central1",
-			wantErr: false,
+			name:      "valid args with tag-key",
+			args:      []string{"--project", "test-project", "--locations", "us-central1", "--tag-key", "test"},
+			project:   "test-project",
+			locations: []string{"us-central1"},
+			wantErr:   false,
 		},
 		{
-			name:    "valid args with contains",
-			args:    []string{"--project", "test-project", "--region", "us-central1", "--contains", "test"},
-			project: "test-project",
-			region:  "us-central1",
-			wantErr: false,
+			name:      "valid args with contains",
+			args:      []string{"--project", "test-project", "--locations", "us-central1", "--contains", "test"},
+			project:   "test-project",
+			locations: []string{"us-central1"},
+			wantErr:   false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			project = tt.project
-			region = tt.region
+			locations = tt.locations
 			GenAppsCmd.Flags().Visit(func(f *pflag.Flag) {
 				f.Value.Set(f.DefValue)
 			})
@@ -92,25 +91,25 @@ func TestGenAppsCmdArgs(t *testing.T) {
 
 func TestGenAppsCmdRunE(t *testing.T) {
 	tests := []struct {
-		name    string
-		args    []string
-		project string
-		region  string
-		wantErr bool
+		name      string
+		args      []string
+		project   string
+		locations []string
+		wantErr   bool
 	}{
 		{
-			name:    "attributes file not found",
-			args:    []string{"--project", "test", "--region", "test", "--label-key", "test", "--attributes", "nonexistent"},
-			project: "test",
-			region:  "test",
-			wantErr: true,
+			name:      "attributes file not found",
+			args:      []string{"--project", "test", "--locations", "test", "--label-key", "test", "--attributes", "nonexistent"},
+			project:   "test",
+			locations: []string{"test"},
+			wantErr:   true,
 		},
 		{
-			name:    "asset-types file not found",
-			args:    []string{"--project", "test", "--region", "test", "--label-key", "test", "--asset-types", "nonexistent"},
-			project: "test",
-			region:  "test",
-			wantErr: true,
+			name:      "asset-types file not found",
+			args:      []string{"--project", "test", "--locations", "test", "--label-key", "test", "--asset-types", "nonexistent"},
+			project:   "test",
+			locations: []string{"test"},
+			wantErr:   true,
 		},
 	}
 
@@ -118,7 +117,7 @@ func TestGenAppsCmdRunE(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			clilog.Init()
 			project = tt.project
-			region = tt.region
+			locations = tt.locations
 			GenAppsCmd.ParseFlags(tt.args)
 			err := GenAppsCmd.RunE(GenAppsCmd, []string{})
 			if (err != nil) != tt.wantErr {

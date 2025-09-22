@@ -6,7 +6,7 @@
 
 `apphub-app-creator` is a command-line utility to generate [Google Cloud App Hub](https://cloud.google.com/app-hub/docs/overview) applications from [Cloud Asset Inventory (CAIS)](https://cloud.google.com/asset-inventory/docs/overview) asset searches.
 
-This tool simplifies the process of creating App Hub applications by allowing you to define them based on existing GCP resource labels.
+This tool simplifies the process of creating App Hub applications by allowing you to define them based on existing GCP resource labels, tags or resource names.
 
 ## Installation
 
@@ -44,29 +44,68 @@ The primary command is `generate`, which creates App Hub applications based on a
 The `generate` command requires the following flags:
 
 * `--project-id`: (Required) The GCP project ID where the resources are located.
-* `--region`: (Required) The GCP region for the App Hub application.
+* `--locations`: (Required) GCP location names to filter CAIS Asset Search (e.g. us-central1).
 * `--label-key`: (Optional) The GCP resource label key to filter resources from Cloud Asset Inventory.
+* `--label-value`: (Optional) The GCP resource label value to filter resources from Cloud Asset Inventory. Must be used with `label-key`
 * `--tag-key`: (Optional) The GCP resource tag key to filter resources from Cloud Asset Inventory.
+* `--tag-value`: (Optional) The GCP resource tag value to filter resources from Cloud Asset Inventory. Must be used with `tag-key`
 * `--contains`: (Optional) GCP Resources whose name contains the string.
 * `--management-project`: (Optional) The project where App Hub is managed. Defaults to the `--project-id`.
 * `--attributes-file`: (Optional) Path to a JSON file containing App Hub application attributes.
 * `--assets-file`: (Optional) Path to a CSV file containing a list of asset types to search in CAIS.
 
-### Example
+### Examples
 
-To create App Hub applications for all resources in `my-gcp-project` that have the label `app-name`, you would run:
+#### Generate applications based on label key
+
+To create App Hub applications for all resources in `my-gcp-project` that have the label key `appid`, you would run:
 
 ```shell
 docker run -it --rm ghcr.io/srinandan/apphub-app-creator:latest apps generate \
     --project-id="my-gcp-project" \
-    --region="us-central1" \
+    --locations="us-central1" \
     --label-key="appid"
 ```
 
 This will:
 
-1. Search for all resources in `my-gcp-project` with the label key `app-name`.
-2. For each unique value of the `app-name` label, it will create a new App Hub application.
+1. Search for all resources in `my-gcp-project` with the label key `appid`.
+2. For each unique value of the `appid` label key, it will create a new App Hub application.
+3. The services and workloads for each application will be populated from the resources that share the same label value.
+
+#### Generate applications based on label key and value
+
+To create App Hub applications for all resources in `my-gcp-project` that have the label key `appid` and value `app1`, you would run:
+
+```shell
+docker run -it --rm ghcr.io/srinandan/apphub-app-creator:latest apps generate \
+    --project-id="my-gcp-project" \
+    --locations="us-central1" \
+    --label-key="appid" \
+    --label-value="app1"
+```
+
+This will:
+
+1. Search for all resources in `my-gcp-project` with the label key `appid` and value `app1`.
+2. It will create a new App Hub application the services and workloads for each application will be populated from the resources that share the same label value.
+
+#### Generate applications from multiple locations
+
+To create App Hub applications for all resources in `my-gcp-project` that have the label key `appid` and deployed in multiple locations, you would run:
+
+```shell
+docker run -it --rm ghcr.io/srinandan/apphub-app-creator:latest apps generate \
+    --project-id="my-gcp-project" \
+    --locations="us-central1" \
+    --locations="us-east1" \
+    --label-key="appid"
+```
+
+This will:
+
+1. Search for all resources in `my-gcp-project` with the label key `appid` in the locations `us-central1` and `us-east1.
+2. For each unique value of the `appid` label key, it will create a new App Hub application.
 3. The services and workloads for each application will be populated from the resources that share the same label value.
 
 ## Contributing
