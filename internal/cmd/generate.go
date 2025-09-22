@@ -77,7 +77,7 @@ var GenAppsCmd = &cobra.Command{
 			}
 		}
 
-		err = client.GenerateAppsByLabel(project,
+		err = client.GenerateApps(project,
 			managementProject,
 			region,
 			labelKey,

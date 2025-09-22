@@ -37,7 +37,7 @@ import (
 var searchAssetsFunc = searchAssets
 var getAppHubClientFunc = getAppHubClient
 
-func GenerateAppsByLabel(projectID, managementProject, region, labelKey, tagKey, contains string, attributesData, assetTypesData []byte) error {
+func GenerateApps(projectID, managementProject, region, labelKey, tagKey, contains string, attributesData, assetTypesData []byte) error {
 	logger := clilog.GetLogger()
 
 	logger.Info("Running Search with Region and Filters")
