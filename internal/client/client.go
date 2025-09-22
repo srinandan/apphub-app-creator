@@ -46,6 +46,11 @@ func GenerateApps(projectID, managementProject, region, labelKey, tagKey, contai
 		return fmt.Errorf("error searching assets: %w", err)
 	}
 
+	if len(assets) == 0 {
+		logger.Warn("No assets found that matched the filter")
+		return fmt.Errorf("no assets found that matched the filter")
+	}
+
 	apphubClient, err := getAppHubClientFunc()
 	if err != nil {
 		return fmt.Errorf("error getting apphub client: %w", err)
