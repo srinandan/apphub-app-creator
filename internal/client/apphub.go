@@ -28,57 +28,46 @@ import (
 
 // lookupDiscoveredService finds a DiscoveredService or Workload resource in App Hub based on its underlying resource URI.
 // The DiscoveredService/Workload represents an existing GCP resource (like a Cloud Run service) that App Hub is aware of.
-func lookupDiscoveredServiceOrWOrkload(apiclient *apphub.Client, projectID, region, resourceURI, appHubType string) (string, error) {
+func lookupDiscoveredServiceOrWorkload(apiclient appHubClient, projectID, region, resourceURI, appHubType string) (string, error) {
 	ctx := context.Background()
-
 	logger := clilog.GetLogger()
 
-	// Construct the parent path and request
-	// Parent format: projects/{project}/locations/{location}
 	parent := fmt.Sprintf("projects/%s/locations/%s", projectID, region)
 
-	if appHubType == "discoveredService" {
+	var (
+		name string
+		err  error
+	)
 
+	switch appHubType {
+	case "discoveredService":
 		req := &apphubpb.LookupDiscoveredServiceRequest{
 			Parent: parent,
 			Uri:    resourceURI,
 		}
-
-		logger.Info("Looking up Discovered Service for URI", parent, resourceURI)
-
-		// Call the LookupDiscoveredService API
+		logger.Info("Looking up Discovered Service for URI", "parent", parent, "uri", resourceURI)
 		response, err := apiclient.LookupDiscoveredService(ctx, req)
 		if err != nil {
-			// Check for specific gRPC error codes
 			if st, ok := status.FromError(err); ok {
 				if st.Code() == codes.PermissionDenied {
 					return "", fmt.Errorf("permission denied: ensure the user has the 'apphub.discoveredServices.list' permission on the project: %w", err)
 				}
-				// Other errors could include InvalidArgument if the URI format is wrong
 				return "", fmt.Errorf("app hub lookup API failed (Code: %s): %w", st.Code().String(), err)
 			}
 			return "", fmt.Errorf("app hub lookup API failed: %w", err)
 		}
-
-		// Check if a Discovered Service was returned and return its Name
-		discoveredService := response.GetDiscoveredService()
-		if discoveredService == nil {
+		if response.GetDiscoveredService() == nil {
 			return "", fmt.Errorf("discovered service not found for URI: %s", resourceURI)
 		}
-
-		return discoveredService.GetName(), nil
-	} else {
+		name = response.GetDiscoveredService().GetName()
+	case "discoveredWorkload":
 		req := &apphubpb.LookupDiscoveredWorkloadRequest{
 			Parent: parent,
 			Uri:    resourceURI,
 		}
-
-		logger.Info("Looking up Workload in '%s' for URI: '%s'\n", parent, resourceURI)
-
-		// 3. Call the LookupWorkload API
+		logger.Info("Looking up Workload in '%s' for URI: '%s'\n", "parent", parent, "uri", resourceURI)
 		response, err := apiclient.LookupDiscoveredWorkload(ctx, req)
 		if err != nil {
-			// Check for specific gRPC error codes
 			if st, ok := status.FromError(err); ok {
 				if st.Code() == codes.PermissionDenied {
 					return "", fmt.Errorf("permission denied: ensure the user has the 'apphub.workloads.list' permission on the project: %w", err)
@@ -87,20 +76,20 @@ func lookupDiscoveredServiceOrWOrkload(apiclient *apphub.Client, projectID, regi
 			}
 			return "", fmt.Errorf("app hub lookup API failed: %w", err)
 		}
-
-		// 4. Check if a Workload was returned and return its Name
-		workload := response.GetDiscoveredWorkload()
-		if workload == nil {
+		if response.GetDiscoveredWorkload() == nil {
 			return "", fmt.Errorf("workload not found for URI: %s", resourceURI)
 		}
-
-		return workload.GetName(), nil
+		name = response.GetDiscoveredWorkload().GetName()
+	default:
+		return "", fmt.Errorf("invalid appHubType: %s", appHubType)
 	}
+
+	return name, err
 }
 
 // getOrCreateAppHubApplication attempts to retrieve an App Hub application by name.
 // If it does not exist, it creates a new one and waits for the operation to complete.
-func getOrCreateAppHubApplication(apiclient *apphub.Client, projectID, region, appID string, data []byte) (*apphubpb.Application, error) {
+func getOrCreateAppHubApplication(apiclient appHubClient, projectID, region, appID string, data []byte) (*apphubpb.Application, error) {
 	ctx := context.Background()
 
 	logger := clilog.GetLogger()
@@ -166,7 +155,7 @@ func getOrCreateAppHubApplication(apiclient *apphub.Client, projectID, region, a
 
 // registerServiceWithApplication registers a Discovered Service as an App Hub Service
 // within a specified Application.
-func registerServiceWithApplication(apiclient *apphub.Client, projectID, region, appID, discoveredName, displayName, appHubType string, data []byte) error {
+func registerServiceWithApplication(apiclient appHubClient, projectID, region, appID, discoveredName, displayName, appHubType string, data []byte) error {
 	ctx := context.Background()
 
 	logger := clilog.GetLogger()
@@ -262,7 +251,7 @@ func registerServiceWithApplication(apiclient *apphub.Client, projectID, region,
 	}
 }
 
-func getAppHubClient() (*apphub.Client, error) {
+func getAppHubClient() (appHubClient, error) {
 	ctx := context.Background()
 
 	apiclient, err := apphub.NewClient(ctx)
@@ -272,6 +261,6 @@ func getAppHubClient() (*apphub.Client, error) {
 	return apiclient, nil
 }
 
-func closeAppHubClient(apiclient *apphub.Client) {
+func closeAppHubClient(apiclient appHubClient) {
 	apiclient.Close()
 }

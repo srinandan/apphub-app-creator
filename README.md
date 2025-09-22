@@ -47,8 +47,10 @@ The `generate` command requires the following flags:
 * `--region`: (Required) The GCP region for the App Hub application.
 * `--label-key`: (Optional) The GCP resource label key to filter resources from Cloud Asset Inventory.
 * `--tag-key`: (Optional) The GCP resource tag key to filter resources from Cloud Asset Inventory.
+* `--contains`: (Optional) GCP Resources whose name contains the string.
 * `--management-project`: (Optional) The project where App Hub is managed. Defaults to the `--project-id`.
 * `--attributes-file`: (Optional) Path to a JSON file containing App Hub application attributes.
+* `--assets-file`: (Optional) Path to a CSV file containing a list of asset types to search in CAIS.
 
 ### Example
 

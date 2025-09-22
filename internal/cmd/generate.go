@@ -47,8 +47,9 @@ var GenAppsCmd = &cobra.Command{
 		labelKey := GetStringParam(cmd.Flag("label-key"))
 		tagKey := GetStringParam(cmd.Flag("tag-key"))
 		attributes := GetStringParam(cmd.Flag("attributes"))
+		assetTypes := GetStringParam(cmd.Flag("asset-types"))
 		contains := GetStringParam(cmd.Flag("contains"))
-		var data []byte
+		var attributesData, assetTypesData []byte
 
 		if managementProject == "" {
 			managementProject = project
@@ -59,7 +60,18 @@ var GenAppsCmd = &cobra.Command{
 				return err
 			}
 
-			data, err = os.ReadFile(attributes)
+			attributesData, err = os.ReadFile(attributes)
+			if err != nil {
+				return err
+			}
+		}
+
+		if assetTypes != "" {
+			if _, err := os.Stat(assetTypes); os.IsNotExist(err) {
+				return err
+			}
+
+			assetTypesData, err = os.ReadFile(assetTypes)
 			if err != nil {
 				return err
 			}
@@ -71,7 +83,8 @@ var GenAppsCmd = &cobra.Command{
 			labelKey,
 			tagKey,
 			contains,
-			data)
+			attributesData,
+			assetTypesData)
 		if err != nil {
 			return
 		}
@@ -80,7 +93,7 @@ var GenAppsCmd = &cobra.Command{
 }
 
 func init() {
-	var labelKey, tagKey, attributes, contains string
+	var labelKey, tagKey, attributes, contains, assetTypes string
 
 	GenAppsCmd.Flags().StringVarP(&labelKey, "label-key", "l",
 		"", "GCP Resource Label Key to filter CAIS Resource")
@@ -90,5 +103,6 @@ func init() {
 		"", "GCP Resources whose name contains the string")
 	GenAppsCmd.Flags().StringVarP(&attributes, "attributes", "a",
 		"", "Path to a json file containing App Hub attributes")
-
+	GenAppsCmd.Flags().StringVarP(&assetTypes, "asset-types", "s",
+		"", "Path to a CSV file containing CAIS Asset Types")
 }

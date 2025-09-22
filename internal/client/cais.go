@@ -27,25 +27,35 @@ import (
 )
 
 var INCLUDED_ASSETS = []string{
+	// runtimes
 	"run.googleapis.com/Service",
-	"compute.googleapis.com/ForwardingRule",
+	"run.googleapis.com/Job",
 	"apps.k8s.io/Deployment",
 	"apps.k8s.io/DaemonSet",
 	"apps.k8s.io/StatefulSet",
-	"run.googleapis.com/Job",
 	"compute.googleapis.com/InstanceGroup",
-	"sqladmin.googleapis.com/Instance",
+	// networking
+	"compute.googleapis.com/ForwardingRule",
+	"compute.googleapis.com/BackendService",
+	// storage
 	"storage.googleapis.com/Bucket",
+	"pubsub.googleapis.com/Topic",
+	"pubsub.googleapis.com/Subscription",
+	// databases
+	"alloydb.googleapis.com/Instance",
 	"spanner.googleapis.com/Instance",
-	"run.googleapis.com/Job",
+	"sqladmin.googleapis.com/Instance",
+	"alloydb.googleapis.com/Instance",
+	"redis.googleapis.com/Instance",
 }
 
 var MAX_PAGE int32 = 1000
 
 // searchAssets queries the Cloud Asset Inventory for resources within a specific project
 // and region
-func searchAssets(projectID, region, labelKey, tagKey, contains string) ([]*assetpb.ResourceSearchResult, error) {
+func searchAssets(projectID, region, labelKey, tagKey, contains string, assetTypesData []byte) ([]*assetpb.ResourceSearchResult, error) {
 	ctx := context.Background()
+	var searchAssetTypes []string
 
 	logger := clilog.GetLogger()
 	// Initialize the Asset Service client
@@ -73,11 +83,19 @@ func searchAssets(projectID, region, labelKey, tagKey, contains string) ([]*asse
 
 	logger.Info("Searching scope with query", "scope", scope, "query", fullQuery)
 
+	if len(assetTypesData) > 0 {
+		searchAssetTypes = strings.Split(string(assetTypesData), ",")
+	} else {
+		searchAssetTypes = INCLUDED_ASSETS
+	}
+
+	logger.Info("Searching asset types", "assets", searchAssetTypes)
+
 	// Construct the search request
 	req := &assetpb.SearchAllResourcesRequest{
 		Scope:      scope,
 		Query:      fullQuery,
-		AssetTypes: INCLUDED_ASSETS,
+		AssetTypes: searchAssetTypes,
 		PageSize:   MAX_PAGE,
 	}
 

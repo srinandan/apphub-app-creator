@@ -2,17 +2,22 @@ module github.com/srinandan/apphub-app-creator
 
 go 1.24.4
 
+require internal/clilog v1.0.0
+
+replace internal/clilog => ./internal/clilog
+
+require internal/client v1.0.0
+
+replace internal/client => ./internal/client
+
 require internal/cmd v1.0.0
 
 replace internal/cmd => ./internal/cmd
 
-require internal/clilog v1.0.0 // indirect
-
-replace internal/clilog => ./internal/clilog
-
-require internal/client v1.0.0 // indirect
-
-replace internal/client => ./internal/client
+require (
+	github.com/spf13/cobra v1.10.1
+	github.com/spf13/pflag v1.0.10
+)
 
 require (
 	cloud.google.com/go v0.120.0 // indirect
@@ -33,8 +38,6 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
 	github.com/googleapis/gax-go/v2 v2.15.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/spf13/cobra v1.10.1 // indirect
-	github.com/spf13/pflag v1.0.10 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.61.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.61.0 // indirect
@@ -53,5 +56,5 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250818200422-3122310a409c // indirect
 	google.golang.org/grpc v1.75.1 // indirect
-	google.golang.org/protobuf v1.36.8 // indirect
+	google.golang.org/protobuf v1.36.9 // indirect
 )
