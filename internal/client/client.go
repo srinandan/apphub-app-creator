@@ -12,26 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Copyright 2025 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package client
 
 import (
 	"fmt"
 	"internal/clilog"
 	"strings"
+
+	assetpb "cloud.google.com/go/asset/apiv1/assetpb"
 )
 
 var searchAssetsFunc = searchAssets
@@ -80,9 +68,9 @@ func GenerateApps(projectID, managementProject, labelKey, labelValue, tagKey, ta
 		}
 		// If the discovered name is not empty,
 		if discoveredName != "" {
-			labelValue := asset.GetLabels()[labelKey]
+			appName := getAppName(labelKey, tagKey, contains, asset)
 			// create the application if it does not exist
-			if _, err = getOrCreateAppHubApplication(apphubClient, managementProject, appLocation, labelValue, attributesData); err != nil {
+			if _, err = getOrCreateAppHubApplication(apphubClient, managementProject, appLocation, appName, attributesData); err != nil {
 				return fmt.Errorf("error creating application: %w", err)
 			}
 			displayName := asset.Name[strings.LastIndex(asset.Name, "/")+1:]
@@ -90,7 +78,7 @@ func GenerateApps(projectID, managementProject, labelKey, labelValue, tagKey, ta
 			// Registry the service or workload
 			if err = registerServiceWithApplication(apphubClient, managementProject,
 				appLocation,
-				labelValue,
+				appName,
 				discoveredName,
 				displayName,
 				appHubType,
@@ -100,4 +88,19 @@ func GenerateApps(projectID, managementProject, labelKey, labelValue, tagKey, ta
 		}
 	}
 	return nil
+}
+
+func getAppName(labelKey, tagKey, contains string, asset *assetpb.ResourceSearchResult) string {
+	if labelKey != "" {
+		return asset.GetLabels()[labelKey]
+	} else if tagKey != "" {
+		for _, tag := range asset.GetTags() {
+			if *tag.TagKey == tagKey {
+				return *tag.TagValue
+			}
+		}
+		return "unknown"
+	} else {
+		return contains
+	}
 }
