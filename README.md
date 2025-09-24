@@ -47,6 +47,8 @@ The `generate` command requires the following flags:
 * `--locations`: (Required) GCP location names to filter CAIS Asset Search (e.g. us-central1).
 * `--label-key`: (Optional) The GCP resource label key to filter resources from Cloud Asset Inventory.
 * `--label-value`: (Optional) The GCP resource label value to filter resources from Cloud Asset Inventory. Must be used with `label-key`
+* `--log-label-key`: (Optional) The GCP Cloud Logging label key to filter resources from Cloud Logging.
+* `--log-label-value`: (Optional) The GCP Cloud Logging label value to filter resources from Cloud Logging. Must be used with `log-label-key`
 * `--tag-key`: (Optional) The GCP resource tag key to filter resources from Cloud Asset Inventory.
 * `--tag-value`: (Optional) The GCP resource tag value to filter resources from Cloud Asset Inventory. Must be used with `tag-key`
 * `--contains`: (Optional) GCP Resources whose name contains the string.
