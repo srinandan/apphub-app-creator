@@ -25,11 +25,13 @@ import (
 var searchAssetsFunc = searchAssets
 var getAppHubClientFunc = getAppHubClient
 
-func GenerateApps(projectID, managementProject, labelKey, labelValue, tagKey, tagValue, contains string, locations []string, attributesData, assetTypesData []byte) error {
+func GenerateAppsAssetInventory(projectID, managementProject, labelKey, labelValue, tagKey, tagValue,
+	contains string, locations []string, attributesData, assetTypesData []byte) error {
+
 	logger := clilog.GetLogger()
 	var appLocation string
 
-	logger.Info("Running Search with location and Filters")
+	logger.Info("Running CAIS Search with location and Filters")
 	assets, err := searchAssetsFunc(projectID, labelKey, labelValue, tagKey, tagValue, contains, locations, assetTypesData)
 	if err != nil {
 		return fmt.Errorf("error searching assets: %w", err)
@@ -55,7 +57,8 @@ func GenerateApps(projectID, managementProject, labelKey, labelValue, tagKey, ta
 
 	// For each asset returned
 	for _, asset := range assets {
-		var discoveredName string
+		var discoveredName, appName string
+
 		// Identity if it is a service or workload
 		appHubType := identifyServiceOrWorkload(asset.AssetType)
 
@@ -64,11 +67,11 @@ func GenerateApps(projectID, managementProject, labelKey, labelValue, tagKey, ta
 			asset.Location,
 			asset.Name,
 			appHubType); err != nil {
-			logger.Warn("Discovered Service not found, perhaps already registered")
+			logger.Warn("Discovered Service/Workload not found, perhaps already registered")
 		}
 		// If the discovered name is not empty,
 		if discoveredName != "" {
-			appName := getAppName(labelKey, tagKey, contains, asset)
+			appName = getAppName(labelKey, tagKey, contains, asset)
 			// create the application if it does not exist
 			if _, err = getOrCreateAppHubApplication(apphubClient, managementProject, appLocation, appName, attributesData); err != nil {
 				return fmt.Errorf("error creating application: %w", err)
@@ -82,6 +85,71 @@ func GenerateApps(projectID, managementProject, labelKey, labelValue, tagKey, ta
 				discoveredName,
 				displayName,
 				appHubType,
+				attributesData); err != nil {
+				return fmt.Errorf("error registering service: %w", err)
+			}
+		}
+	}
+	return nil
+}
+
+func GenerateAppsCloudLogging(projectID, managementProject, logLabelKey, logLabelValue string, locations []string, attributesData []byte) error {
+	logger := clilog.GetLogger()
+	var appLocation string
+
+	logger.Info("Running Cloud Lgging with location and Filters")
+
+	assets, err := filterLogs(projectID, logLabelKey, logLabelValue, locations)
+	if err != nil {
+		return fmt.Errorf("error searching logs: %w", err)
+	}
+
+	if len(assets) == 0 {
+		logger.Warn("No assets found that matched the filter")
+		return fmt.Errorf("no assets found that matched the filter")
+	}
+
+	apphubClient, err := getAppHubClientFunc()
+	if err != nil {
+		return fmt.Errorf("error getting apphub client: %w", err)
+	}
+
+	defer closeAppHubClient(apphubClient)
+
+	if len(locations) > 0 {
+		appLocation = "global"
+	} else {
+		appLocation = locations[0]
+	}
+
+	// For each asset returned
+	for assetURI, asset := range assets {
+		var discoveredName, appName string
+
+		// Lookup App Hub to get the discovered name
+		if discoveredName, err = lookupDiscoveredServiceOrWorkload(apphubClient, managementProject,
+			asset.Location,
+			assetURI,
+			asset.AppHubType); err != nil {
+			logger.Warn("Discovered Service/Workload not found, perhaps already registered")
+		}
+
+		// If the discovered name is not empty,
+		if discoveredName != "" {
+			appName = logLabelValue
+			// create the application if it does not exist
+			if _, err = getOrCreateAppHubApplication(apphubClient, managementProject, appLocation, appName, attributesData); err != nil {
+				return fmt.Errorf("error creating application: %w", err)
+			}
+			displayName := asset.Name
+
+			// Registry the service or workload
+			if err = registerServiceWithApplication(apphubClient, managementProject,
+				appLocation,
+				appName,
+				discoveredName,
+				displayName,
+				asset.AppHubType,
 				attributesData); err != nil {
 				return fmt.Errorf("error registering service: %w", err)
 			}

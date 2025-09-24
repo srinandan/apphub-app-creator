@@ -30,6 +30,8 @@ var GenAppsCmd = &cobra.Command{
 	Args: func(cmd *cobra.Command, args []string) (err error) {
 		labelKey := GetStringParam(cmd.Flag("label-key"))
 		labelValue := GetStringParam(cmd.Flag("label-value"))
+		logLabelKey := GetStringParam(cmd.Flag("log-label-key"))
+		logLabelValue := GetStringParam(cmd.Flag("log-label-value"))
 		tagKey := GetStringParam(cmd.Flag("tag-key"))
 		tagValue := GetStringParam(cmd.Flag("tag-value"))
 		contains := GetStringParam(cmd.Flag("contains"))
@@ -40,11 +42,16 @@ var GenAppsCmd = &cobra.Command{
 		if len(locations) == 0 {
 			return fmt.Errorf("at least one location is required")
 		}
-		if labelKey == "" && tagKey == "" && contains == "" {
-			return fmt.Errorf("label-key or tag-key or contains is a required field")
+		if labelKey == "" && tagKey == "" && contains == "" && logLabelKey == "" {
+			return fmt.Errorf("label-key or tag-key or contains or log-label-key is a required field")
 		}
-		if (labelKey != "" && tagKey != "") || (labelKey != "" && contains != "") || (tagKey != "" && contains != "") {
-			return fmt.Errorf("only one of label-key, tag-key, or contains is allowed")
+		if (labelKey != "" && tagKey != "") ||
+			(labelKey != "" && contains != "") ||
+			(tagKey != "" && contains != "") ||
+			(labelKey != "" && logLabelKey != "") ||
+			(tagKey != "" && logLabelKey != "") ||
+			(contains != "" && logLabelKey != "") {
+			return fmt.Errorf("only one of label-key, tag-key, log-label-key or contains is allowed")
 		}
 		if labelValue != "" && labelKey == "" {
 			return fmt.Errorf("label-value must be used with label-key")
@@ -52,11 +59,16 @@ var GenAppsCmd = &cobra.Command{
 		if tagValue != "" && tagKey == "" {
 			return fmt.Errorf("tag-value must be used with tag-key")
 		}
+		if logLabelKey != "" && logLabelValue == "" {
+			return fmt.Errorf("log-label-value must be used with log-label-key")
+		}
 		return
 	},
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		labelKey := GetStringParam(cmd.Flag("label-key"))
 		labelValue := GetStringParam(cmd.Flag("label-value"))
+		logLabelKey := GetStringParam(cmd.Flag("log-label-key"))
+		logLabelValue := GetStringParam(cmd.Flag("log-label-value"))
 		tagKey := GetStringParam(cmd.Flag("tag-key"))
 		tagValue := GetStringParam(cmd.Flag("tag-value"))
 		attributes := GetStringParam(cmd.Flag("attributes"))
@@ -79,36 +91,46 @@ var GenAppsCmd = &cobra.Command{
 			}
 		}
 
-		if assetTypes != "" {
-			if _, err := os.Stat(assetTypes); os.IsNotExist(err) {
-				return err
+		if logLabelKey != "" {
+			err = client.GenerateAppsCloudLogging(project,
+				managementProject,
+				logLabelKey,
+				logLabelValue,
+				locations,
+				attributesData)
+
+			return err
+		} else {
+			if assetTypes != "" {
+				if _, err := os.Stat(assetTypes); os.IsNotExist(err) {
+					return err
+				}
+
+				assetTypesData, err = os.ReadFile(assetTypes)
+				if err != nil {
+					return err
+				}
 			}
 
-			assetTypesData, err = os.ReadFile(assetTypes)
-			if err != nil {
-				return err
-			}
-		}
+			err = client.GenerateAppsAssetInventory(project,
+				managementProject,
+				labelKey,
+				labelValue,
+				tagKey,
+				tagValue,
+				contains,
+				locations,
+				attributesData,
+				assetTypesData)
 
-		err = client.GenerateApps(project,
-			managementProject,
-			labelKey,
-			labelValue,
-			tagKey,
-			tagValue,
-			contains,
-			locations,
-			attributesData,
-			assetTypesData)
-		if err != nil {
-			return
+			return err
 		}
-		return
 	},
 }
 
 func init() {
-	var labelKey, tagKey, tagValue, attributes, contains, assetTypes, labelValue string
+	var labelKey, labelValue, tagKey, tagValue, contains, logLabelKey, logLabelValue string
+	var attributes, assetTypes string
 
 	GenAppsCmd.Flags().StringVarP(&labelKey, "label-key", "",
 		"", "GCP Resource Label Key to filter CAIS Resource")
@@ -118,6 +140,10 @@ func init() {
 		"", "GCP Resource Tag Key to filter CAIS Resource")
 	GenAppsCmd.Flags().StringVarP(&tagValue, "tag-value", "",
 		"", "GCP Resource Tag Value to filter CAIS Resource; Must be used with tag-key")
+	GenAppsCmd.Flags().StringVarP(&logLabelKey, "log-label-key", "",
+		"", "GCP Cloud Logging Label Key to filter")
+	GenAppsCmd.Flags().StringVarP(&logLabelValue, "log-label-value", "",
+		"", "GCP Cloud Logging Label Value to filter; Must be used with log-label-key")
 	GenAppsCmd.Flags().StringVarP(&contains, "contains", "",
 		"", "GCP Resources whose name contains the string")
 	GenAppsCmd.Flags().StringVarP(&attributes, "attributes", "",
