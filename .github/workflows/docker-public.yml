@@ -151,8 +151,9 @@ jobs:
           image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build-and-push.outputs.digest }}'
           format: 'sarif'
           output: 'trivy-results.sarif'
+          severity: 'HIGH,CRITICAL'
           cache: 'true'
-          exit-code: 0
+          exit-code: 1
 
       - name: Upload Trivy apphub-app-creator SARIF Report
         uses: github/codeql-action/upload-sarif@4f3212b61783c3c68e8309a0f18a699764811cda

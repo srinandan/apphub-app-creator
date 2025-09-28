@@ -26,6 +26,11 @@ jobs:
 
   goreleaser:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # for creating releases
+      id-token: write # for signing
+      packages: write # for pushing to ghcr.io
+
     steps:
       - uses: actions/checkout@1e31de5234b9f8995739874a8ce0492dc87873e2 #v4
       - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 #v5
@@ -40,10 +45,12 @@ jobs:
           version: latest
           args: --timeout=4m
 
-      - name: Write private key to disk
-        run: echo "${{ secrets.COSIGN_PRIVATE_KEY }}" > /tmp/cosign.key
+      - name: Run govulncheck
+        uses: golang/govulncheck-action@b625fbe08f3bccbe446d94fbf87fcc875a4f50ee # v1.0.4
 
-    #  - uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da #v3.7.0
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v3.7.0
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@286f3b13b1b49da4ac219696163fb8c1c93e1200 #v6
@@ -52,8 +59,12 @@ jobs:
           version: 2
           args: release --clean
         env:
-    #      COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sign the binaries
+        run: cosign sign --yes --recursive ./dist/*
+        env:
+          COSIGN_EXPERIMENTAL: "true"
 
       - name: Upload assets
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0

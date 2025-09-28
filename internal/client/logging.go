@@ -31,6 +31,14 @@ type logAsset struct {
 	Location   string
 }
 
+var INCLUDED_RESOURCE_TYPES = []string{
+	"cloud_run_revision",
+	"k8s_pod",
+	"gce_instance_group",
+}
+
+const k8s_deployment = "AND labels.\"logging.gke.io/top_level_controller_type\"=\"Deployment\""
+
 func filterLogs(projectID, labelKey, labelValue string, locations []string) (map[string]logAsset, error) {
 	ctx := context.Background()
 	logger := clilog.GetLogger()
@@ -44,7 +52,8 @@ func filterLogs(projectID, labelKey, labelValue string, locations []string) (map
 	}
 	defer client.Close()
 
-	filter := fmt.Sprintf("%s AND labels.%s=\"%s\"", generateLocationFilter(locations), labelKey, labelValue)
+	filter := fmt.Sprintf("%s AND (labels.%s=\"%s\") AND %s", generateLocationFilter(locations),
+		labelKey, labelValue, generateResourceTypeFilter())
 
 	logger.Info("Searching logs with query", "query", filter)
 
@@ -69,7 +78,7 @@ func filterLogs(projectID, labelKey, labelValue string, locations []string) (map
 	return assets, nil
 }
 
-// generateLocationFilter takes a comma-separated string of locations (e.g., "us-central1,europe-west1")
+// generateLocationFilter takes a string array of locations (e.g., "us-central1,europe-west1")
 // and returns a filter string in the format (resource.location="loc1" OR resource.location="loc2").
 func generateLocationFilter(locations []string) string {
 
@@ -77,6 +86,32 @@ func generateLocationFilter(locations []string) string {
 
 	for _, loc := range locations {
 		clause := fmt.Sprintf(`resource.labels.location="%s"`, loc)
+		clauses = append(clauses, clause)
+	}
+
+	// Join the clauses with " OR ".
+	filter := strings.Join(clauses, " OR ")
+
+	// Enclose the entire expression in parentheses.
+	if filter != "" {
+		return fmt.Sprintf("(%s)", filter)
+	}
+
+	return ""
+}
+
+// generateResourceTypeFilter returns a filter string in the format (resource.type="type1" OR resource.type="type2").
+func generateResourceTypeFilter() string {
+
+	var clauses []string
+
+	for _, rt := range INCLUDED_RESOURCE_TYPES {
+		var clause string
+		if rt == "k8s_pod" {
+			clause = fmt.Sprintf(`(resource.type="%s" AND %s)`, rt, k8s_deployment)
+		} else {
+			clause = fmt.Sprintf(`resource.type="%s"`, rt)
+		}
 		clauses = append(clauses, clause)
 	}
 

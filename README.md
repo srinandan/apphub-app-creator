@@ -38,6 +38,11 @@ The primary command is `generate`, which creates App Hub applications based on a
 * The user or service account running the tool must have the following IAM roles:
   * `apphub.admin` on the App Hub management project.
   * `cloudasset.viewer` on the project where your resources are located.
+  * `logging.viewer` on the project where logs are written to.
+
+* Please follow the instructions here to setup on [Host Projects](https://cloud.google.com/app-hub/docs/set-up-app-hub-host-project)
+
+* **OR** Please follow the instructions here to enable a [folder](https://cloud.google.com/app-hub/docs/set-up-app-hub-folder) for Application Management.
 
 ### Generate Command
 
