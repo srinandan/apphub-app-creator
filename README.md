@@ -115,6 +115,13 @@ This will:
 2. For each unique value of the `appid` label key, it will create a new App Hub application.
 3. The services and workloads for each application will be populated from the resources that share the same label value.
 
+### Delete Command
+
+The `delete` command deletes one or more applications in a given set of locations. The `delete` command requires the following flags:
+
+* `--locations`: (Required) GCP location names to filter CAIS Asset Search (e.g. us-central1).
+* `--management-project`: (Optional) The project where App Hub is managed. Defaults to the `--project-id`.
+
 ## Contributing
 
 Please see [CONTRIBUTING.md](CONTRIBUTING.md) for information on how to contribute to this project.

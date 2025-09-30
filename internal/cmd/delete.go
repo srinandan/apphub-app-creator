@@ -27,8 +27,8 @@ var DelAppsCmd = &cobra.Command{
 	Short: "Delete App Hub Applications",
 	Long:  "Delete App Hub Applications from multiple regions",
 	Args: func(cmd *cobra.Command, args []string) (err error) {
-		if project == "" {
-			return fmt.Errorf("project is a required field")
+		if managementProject == "" {
+			return fmt.Errorf("management project is a required field")
 		}
 		if len(locations) == 0 {
 			return fmt.Errorf("at least one location is required")
@@ -39,11 +39,7 @@ var DelAppsCmd = &cobra.Command{
 
 		cmd.SilenceUsage = true
 
-		if managementProject == "" {
-			managementProject = project
-		}
-
-		err = client.DeleteAllApps(project,
+		err = client.DeleteAllApps(
 			managementProject,
 			locations)
 

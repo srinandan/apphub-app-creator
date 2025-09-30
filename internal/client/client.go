@@ -47,6 +47,8 @@ func GenerateAppsAssetInventory(projectID, managementProject, labelKey, labelVal
 		return fmt.Errorf("no assets found that matched the filter")
 	}
 
+	logger.Info("Found assets to process", "count", len(assets))
+
 	apphubClient, err := getAppHubClientFunc()
 	if err != nil {
 		return fmt.Errorf("error getting apphub client: %w", err)
@@ -99,6 +101,7 @@ func GenerateAppsAssetInventory(projectID, managementProject, labelKey, labelVal
 			}
 		}
 	}
+	logger.Info("Successfully finished processing all assets.")
 	return nil
 }
 
@@ -117,6 +120,8 @@ func GenerateAppsCloudLogging(projectID, managementProject, logLabelKey, logLabe
 		logger.Warn("No assets found that matched the filter")
 		return fmt.Errorf("no assets found that matched the filter")
 	}
+
+	logger.Info("Found assets from logs to process", "count", len(assets))
 
 	apphubClient, err := getAppHubClientFunc()
 	if err != nil {
@@ -168,10 +173,11 @@ func GenerateAppsCloudLogging(projectID, managementProject, logLabelKey, logLabe
 			}
 		}
 	}
+	logger.Info("Successfully finished processing all assets from logs.")
 	return nil
 }
 
-func DeleteAllApps(projectID, managementProject string, locations []string) error {
+func DeleteAllApps(managementProject string, locations []string) error {
 	logger := clilog.GetLogger()
 	ctx := context.Background()
 	apphubClient, err := getAppHubClientFunc()
@@ -184,7 +190,7 @@ func DeleteAllApps(projectID, managementProject string, locations []string) erro
 	logger.Info("Attempting deletion of applications")
 	for _, location := range locations {
 		// Parent format: projects/{project}/locations/{location}/applications/{application_id}
-		parent := fmt.Sprintf("projects/%s/locations/%s", projectID, location)
+		parent := fmt.Sprintf("projects/%s/locations/%s", managementProject, location)
 		req := &apphubpb.ListApplicationsRequest{
 			Parent: parent,
 		}
@@ -200,11 +206,14 @@ func DeleteAllApps(projectID, managementProject string, locations []string) erro
 				return fmt.Errorf("failed to list applications: %w", err)
 			}
 
-			if err = deleteApp(apphubClient, managementProject, location, app.Name[strings.LastIndex(app.Name, "/")+1:]); err != nil {
-				return fmt.Errorf("error deleting application: %w", err)
+			appName := app.Name[strings.LastIndex(app.Name, "/")+1:]
+			logger.Info("Deleting application", "application", appName, "location", location)
+			if err = deleteApp(apphubClient, managementProject, location, appName); err != nil {
+				return fmt.Errorf("error deleting application %s: %w", appName, err)
 			}
 		}
 	}
+	logger.Info("Successfully finished deleting applications.")
 	return nil
 }
 

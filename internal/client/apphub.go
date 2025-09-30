@@ -51,10 +51,12 @@ func lookupDiscoveredServiceOrWorkload(apiclient appHubClient, projectID, locati
 		response, err = apiclient.LookupDiscoveredService(ctx, req)
 		if err == nil {
 			if response.GetDiscoveredService() == nil {
+				logger.Warn("Lookup API succeeded but returned no discovered service", "uri", resourceURI)
 				return "", fmt.Errorf("discovered service not found for URI: %s", resourceURI)
 			}
 			name = response.GetDiscoveredService().GetName()
 		}
+
 	case "discoveredWorkload":
 		req := &apphubpb.LookupDiscoveredWorkloadRequest{
 			Parent: parent,
@@ -65,6 +67,7 @@ func lookupDiscoveredServiceOrWorkload(apiclient appHubClient, projectID, locati
 		response, err = apiclient.LookupDiscoveredWorkload(ctx, req)
 		if err == nil {
 			if response.GetDiscoveredWorkload() == nil {
+				logger.Warn("Lookup API succeeded but returned no discovered workload", "uri", resourceURI)
 				return "", fmt.Errorf("workload not found for URI: %s", resourceURI)
 			}
 			name = response.GetDiscoveredWorkload().GetName()
@@ -82,11 +85,13 @@ func lookupDiscoveredServiceOrWorkload(apiclient appHubClient, projectID, locati
 				}
 				return "", fmt.Errorf("permission denied: ensure the user has the '%s' permission on the project: %w", permission, err)
 			}
+			logger.Error("App Hub lookup API failed", "code", st.Code().String(), "error", err)
 			return "", fmt.Errorf("app hub lookup API failed (Code: %s): %w", st.Code().String(), err)
 		}
 		return "", fmt.Errorf("app hub lookup API failed: %w", err)
 	}
 
+	logger.Info("Successfully found discovered resource", "name", name, "type", appHubType)
 	return name, nil
 }
 
@@ -117,6 +122,7 @@ func getOrCreateAppHubApplication(apiclient appHubClient, projectID, location, a
 
 	// If the error is NOT_FOUND, proceed to create it.
 	if st, ok := status.FromError(err); !ok || st.Code() != codes.NotFound {
+		logger.Error("Failed to check for existing application", "app-name", applicationName, "error", err)
 		return nil, fmt.Errorf("failed to check for existing application '%s': %w", applicationName, err)
 	}
 
@@ -340,7 +346,7 @@ func removeAllWorkloads(apiclient appHubClient, projectID, location, appID strin
 		}
 
 		op.Wait(ctx)
-		logger.Info("Workload successfully deleted.", "workload", workload.Name)
+		logger.Info("Successfully deleted workload", "workload", workload.Name)
 	}
 
 	return nil
@@ -353,11 +359,13 @@ func deleteApp(apiclient appHubClient, projectID, location, appID string) error 
 
 	logger := clilog.GetLogger()
 
+	logger.Info("Removing all services from application", "app-name", appID)
 	err = removeAllServices(apiclient, projectID, location, appID)
 	if err != nil {
 		return fmt.Errorf("failed to remove all services: %w", err)
 	}
 
+	logger.Info("Removing all workloads from application", "app-name", appID)
 	err = removeAllWorkloads(apiclient, projectID, location, appID)
 	if err != nil {
 		return fmt.Errorf("failed to remove all workloads: %w", err)
@@ -377,7 +385,10 @@ func deleteApp(apiclient appHubClient, projectID, location, appID string) error 
 	}
 
 	op.Wait(ctx)
-	logger.Info("Application successfully deleted.", "app-name", appID)
+	if err != nil {
+		return fmt.Errorf("application deletion failed during wait: %w", err)
+	}
+	logger.Info("Application successfully deleted", "app-name", appID)
 
 	return nil
 }
