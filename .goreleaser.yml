@@ -50,7 +50,7 @@ builds:
 
 archives:
   - id: apphub-app-creator
-    format: zip
+    formats: ['zip']
     name_template: >-
       {{ .ProjectName }}_
       {{- .Tag }}_
@@ -69,17 +69,17 @@ archives:
 checksum:
   name_template: "checksums.txt"
 
-signs:
-  - cmd: cosign
-    stdin: '{{ .Env.COSIGN_PASSWORD }}'
-    args:
-    - "sign-blob"
-    - "--key=/tmp/cosign.key"
-    - "--output-signature=${signature}"
-    - "${artifact}"
-    - "--yes"
-    artifacts: all
-    output: true
+# signs:
+#   - cmd: cosign
+#     stdin: '{{ .Env.COSIGN_PASSWORD }}'
+#     args:
+#     - "sign-blob"
+#     - "--key=/tmp/cosign.key"
+#     - "--output-signature=${signature}"
+#     - "${artifact}"
+#     - "--yes"
+#     artifacts: all
+#     output: true
 
 changelog:
   sort: asc
@@ -90,4 +90,4 @@ changelog:
 
 release:
   draft: true
-  prerelease: true
+  prerelease: auto
