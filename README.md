@@ -61,9 +61,9 @@ The `generate` command requires the following flags:
 * `--attributes-file`: (Optional) Path to a JSON file containing App Hub application attributes.
 * `--assets-file`: (Optional) Path to a CSV file containing a list of asset types to search in CAIS.
 
-### Examples
+#### Examples
 
-#### Generate applications based on label key
+##### Generate applications based on label key
 
 To create App Hub applications for all resources in `my-gcp-project` that have the label key `appid`, you would run:
 
@@ -80,7 +80,7 @@ This will:
 2. For each unique value of the `appid` label key, it will create a new App Hub application.
 3. The services and workloads for each application will be populated from the resources that share the same label value.
 
-#### Generate applications based on label key and value
+##### Generate applications based on label key and value
 
 To create App Hub applications for all resources in `my-gcp-project` that have the label key `appid` and value `app1`, you would run:
 
@@ -97,7 +97,7 @@ This will:
 1. Search for all resources in `my-gcp-project` with the label key `appid` and value `app1`.
 2. It will create a new App Hub application the services and workloads for each application will be populated from the resources that share the same label value.
 
-#### Generate applications from multiple locations
+##### Generate applications from multiple locations
 
 To create App Hub applications for all resources in `my-gcp-project` that have the label key `appid` and deployed in multiple locations, you would run:
 
@@ -119,7 +119,7 @@ This will:
 
 The `delete` command deletes one or more applications in a given set of locations. The `delete` command requires the following flags:
 
-* `--locations`: (Required) GCP location names to filter CAIS Asset Search (e.g. us-central1).
+* `--locations`: (Required) GCP location names to delete applications from (e.g. us-central1).
 * `--management-project`: (Optional) The project where App Hub is managed. Defaults to the `--project-id`.
 
 ## Contributing
