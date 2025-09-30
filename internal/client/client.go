@@ -15,19 +15,24 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"internal/clilog"
 	"strings"
 
+	apphubpb "cloud.google.com/go/apphub/apiv1/apphubpb"
 	assetpb "cloud.google.com/go/asset/apiv1/assetpb"
+	"google.golang.org/api/iterator"
 )
 
-var searchAssetsFunc = searchAssets
-var getAppHubClientFunc = getAppHubClient
+var (
+	searchAssetsFunc    = searchAssets
+	getAppHubClientFunc = getAppHubClient
+)
 
 func GenerateAppsAssetInventory(projectID, managementProject, labelKey, labelValue, tagKey, tagValue,
-	contains string, locations []string, attributesData, assetTypesData []byte) error {
-
+	contains string, locations []string, attributesData, assetTypesData []byte,
+) error {
 	logger := clilog.GetLogger()
 	var appLocation string
 
@@ -49,7 +54,7 @@ func GenerateAppsAssetInventory(projectID, managementProject, labelKey, labelVal
 
 	defer closeAppHubClient(apphubClient)
 
-	if len(locations) > 0 {
+	if len(locations) > 1 {
 		appLocation = "global"
 	} else {
 		appLocation = locations[0]
@@ -57,6 +62,8 @@ func GenerateAppsAssetInventory(projectID, managementProject, labelKey, labelVal
 
 	// For each asset returned
 	for _, asset := range assets {
+		logger.Info("Processing asset", "assetName", asset.Name, "assetType", asset.AssetType)
+
 		var discoveredName, appName string
 
 		// Identity if it is a service or workload
@@ -67,13 +74,14 @@ func GenerateAppsAssetInventory(projectID, managementProject, labelKey, labelVal
 			asset.Location,
 			asset.Name,
 			appHubType); err != nil {
-			logger.Warn("Discovered Service/Workload not found, perhaps already registered")
+			logger.Warn("Discovered Service/Workload not found, perhaps already registered", "assetName", asset.Name, "error", err)
 		}
 		// If the discovered name is not empty,
 		if discoveredName != "" {
 			appName = getAppName(labelKey, tagKey, contains, asset)
 			// create the application if it does not exist
 			if _, err = getOrCreateAppHubApplication(apphubClient, managementProject, appLocation, appName, attributesData); err != nil {
+				logger.Error("Failed to create or get application", "application", appName, "error", err)
 				return fmt.Errorf("error creating application: %w", err)
 			}
 			displayName := asset.Name[strings.LastIndex(asset.Name, "/")+1:]
@@ -86,6 +94,7 @@ func GenerateAppsAssetInventory(projectID, managementProject, labelKey, labelVal
 				displayName,
 				appHubType,
 				attributesData); err != nil {
+				logger.Error("Failed to register service with application", "application", appName, "service", displayName, "error", err)
 				return fmt.Errorf("error registering service: %w", err)
 			}
 		}
@@ -97,7 +106,7 @@ func GenerateAppsCloudLogging(projectID, managementProject, logLabelKey, logLabe
 	logger := clilog.GetLogger()
 	var appLocation string
 
-	logger.Info("Running Cloud Lgging with location and Filters")
+	logger.Info("Running Cloud Logging with location and Filters")
 
 	assets, err := filterLogs(projectID, logLabelKey, logLabelValue, locations)
 	if err != nil {
@@ -116,7 +125,7 @@ func GenerateAppsCloudLogging(projectID, managementProject, logLabelKey, logLabe
 
 	defer closeAppHubClient(apphubClient)
 
-	if len(locations) > 0 {
+	if len(locations) > 1 {
 		appLocation = "global"
 	} else {
 		appLocation = locations[0]
@@ -124,6 +133,8 @@ func GenerateAppsCloudLogging(projectID, managementProject, logLabelKey, logLabe
 
 	// For each asset returned
 	for assetURI, asset := range assets {
+		logger.Info("Processing asset from logs", "assetURI", assetURI, "assetName", asset.Name)
+
 		var discoveredName, appName string
 
 		// Lookup App Hub to get the discovered name
@@ -131,7 +142,7 @@ func GenerateAppsCloudLogging(projectID, managementProject, logLabelKey, logLabe
 			asset.Location,
 			assetURI,
 			asset.AppHubType); err != nil {
-			logger.Warn("Discovered Service/Workload not found, perhaps already registered")
+			logger.Warn("Discovered Service/Workload not found, perhaps already registered", "assetURI", assetURI, "error", err)
 		}
 
 		// If the discovered name is not empty,
@@ -139,6 +150,7 @@ func GenerateAppsCloudLogging(projectID, managementProject, logLabelKey, logLabe
 			appName = logLabelValue
 			// create the application if it does not exist
 			if _, err = getOrCreateAppHubApplication(apphubClient, managementProject, appLocation, appName, attributesData); err != nil {
+				logger.Error("Failed to create or get application", "application", appName, "error", err)
 				return fmt.Errorf("error creating application: %w", err)
 			}
 			displayName := asset.Name
@@ -151,7 +163,45 @@ func GenerateAppsCloudLogging(projectID, managementProject, logLabelKey, logLabe
 				displayName,
 				asset.AppHubType,
 				attributesData); err != nil {
+				logger.Error("Failed to register service with application", "application", appName, "service", displayName, "error", err)
 				return fmt.Errorf("error registering service: %w", err)
+			}
+		}
+	}
+	return nil
+}
+
+func DeleteAllApps(projectID, managementProject string, locations []string) error {
+	logger := clilog.GetLogger()
+	ctx := context.Background()
+	apphubClient, err := getAppHubClientFunc()
+	if err != nil {
+		return fmt.Errorf("error getting apphub client: %w", err)
+	}
+
+	defer closeAppHubClient(apphubClient)
+
+	logger.Info("Attempting deletion of applications")
+	for _, location := range locations {
+		// Parent format: projects/{project}/locations/{location}/applications/{application_id}
+		parent := fmt.Sprintf("projects/%s/locations/%s", projectID, location)
+		req := &apphubpb.ListApplicationsRequest{
+			Parent: parent,
+		}
+
+		// Call the ListApplications API
+		listApplications := apphubClient.ListApplications(ctx, req)
+		for {
+			app, err := listApplications.Next()
+			if err != nil {
+				if err == iterator.Done {
+					break
+				}
+				return fmt.Errorf("failed to list applications: %w", err)
+			}
+
+			if err = deleteApp(apphubClient, managementProject, location, app.Name[strings.LastIndex(app.Name, "/")+1:]); err != nil {
+				return fmt.Errorf("error deleting application: %w", err)
 			}
 		}
 	}

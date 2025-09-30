@@ -81,7 +81,6 @@ func filterLogs(projectID, labelKey, labelValue string, locations []string) (map
 // generateLocationFilter takes a string array of locations (e.g., "us-central1,europe-west1")
 // and returns a filter string in the format (resource.location="loc1" OR resource.location="loc2").
 func generateLocationFilter(locations []string) string {
-
 	var clauses []string
 
 	for _, loc := range locations {
@@ -102,7 +101,6 @@ func generateLocationFilter(locations []string) string {
 
 // generateResourceTypeFilter returns a filter string in the format (resource.type="type1" OR resource.type="type2").
 func generateResourceTypeFilter() string {
-
 	var clauses []string
 
 	for _, rt := range INCLUDED_RESOURCE_TYPES {

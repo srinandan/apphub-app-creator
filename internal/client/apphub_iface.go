@@ -1,4 +1,3 @@
-
 // Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +29,13 @@ type appHubClient interface {
 	LookupDiscoveredWorkload(ctx context.Context, req *apphubpb.LookupDiscoveredWorkloadRequest, opts ...gax.CallOption) (*apphubpb.LookupDiscoveredWorkloadResponse, error)
 	GetApplication(ctx context.Context, req *apphubpb.GetApplicationRequest, opts ...gax.CallOption) (*apphubpb.Application, error)
 	CreateApplication(ctx context.Context, req *apphubpb.CreateApplicationRequest, opts ...gax.CallOption) (*apphub.CreateApplicationOperation, error)
+	ListApplications(ctx context.Context, req *apphubpb.ListApplicationsRequest, opts ...gax.CallOption) *apphub.ApplicationIterator
 	CreateService(ctx context.Context, req *apphubpb.CreateServiceRequest, opts ...gax.CallOption) (*apphub.CreateServiceOperation, error)
 	CreateWorkload(ctx context.Context, req *apphubpb.CreateWorkloadRequest, opts ...gax.CallOption) (*apphub.CreateWorkloadOperation, error)
+	ListServices(ctx context.Context, req *apphubpb.ListServicesRequest, opts ...gax.CallOption) *apphub.ServiceIterator
+	ListWorkloads(ctx context.Context, req *apphubpb.ListWorkloadsRequest, opts ...gax.CallOption) *apphub.WorkloadIterator
+	DeleteService(ctx context.Context, req *apphubpb.DeleteServiceRequest, opts ...gax.CallOption) (*apphub.DeleteServiceOperation, error)
+	DeleteWorkload(ctx context.Context, req *apphubpb.DeleteWorkloadRequest, opts ...gax.CallOption) (*apphub.DeleteWorkloadOperation, error)
+	DeleteApplication(ctx context.Context, req *apphubpb.DeleteApplicationRequest, opts ...gax.CallOption) (*apphub.DeleteApplicationOperation, error)
 	Close() error
 }

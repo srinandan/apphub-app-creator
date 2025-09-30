@@ -22,6 +22,7 @@ import (
 
 	apphub "cloud.google.com/go/apphub/apiv1"
 	apphubpb "cloud.google.com/go/apphub/apiv1/apphubpb"
+	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -259,6 +260,126 @@ func registerServiceWithApplication(apiclient appHubClient, projectID, location,
 		logger.Info("Workload successfully registered to application.", "workload", createdWorkload.Name, "app-name", appID)
 		return nil
 	}
+}
+
+func removeAllServices(apiclient appHubClient, projectID, location, appID string) error {
+	ctx := context.Background()
+
+	logger := clilog.GetLogger()
+
+	// Determine the Service Parent (The Application Path)
+	// Parent format: projects/{project}/locations/{location}/applications/{application_id}
+	parent := fmt.Sprintf("projects/%s/locations/%s/applications/%s", projectID, location, appID)
+
+	reqServices := &apphubpb.ListServicesRequest{
+		Parent: parent,
+	}
+
+	// Call the ListServices API
+	listServices := apiclient.ListServices(ctx, reqServices)
+
+	for {
+		service, err := listServices.Next()
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+			return fmt.Errorf("failed to list services: %w", err)
+		}
+
+		// Construct the DeleteService Request
+		reqDeleteService := &apphubpb.DeleteServiceRequest{
+			Name: service.GetName(),
+		}
+		// Call the DeleteService API (LRO)
+		op, err := apiclient.DeleteService(ctx, reqDeleteService)
+		if err != nil {
+			return fmt.Errorf("failed to start service deletion: %w", err)
+		}
+
+		op.Wait(ctx)
+		logger.Info("Service successfully deleted.", "service", service.Name)
+	}
+
+	return nil
+}
+
+func removeAllWorkloads(apiclient appHubClient, projectID, location, appID string) error {
+	ctx := context.Background()
+
+	logger := clilog.GetLogger()
+
+	// Determine the Service Parent (The Application Path)
+	// Parent format: projects/{project}/locations/{location}/applications/{application_id}
+	parent := fmt.Sprintf("projects/%s/locations/%s/applications/%s", projectID, location, appID)
+
+	reqWorkloads := &apphubpb.ListWorkloadsRequest{
+		Parent: parent,
+	}
+
+	// Call the ListWorkloads API
+	listWorkloads := apiclient.ListWorkloads(ctx, reqWorkloads)
+
+	for {
+		workload, err := listWorkloads.Next()
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+			return fmt.Errorf("failed to list workloads: %w", err)
+		}
+
+		// Construct the DeleteWorkload Request
+		reqDeleteWorkload := &apphubpb.DeleteWorkloadRequest{
+			Name: workload.GetName(),
+		}
+		// Call the DeleteWorkload API (LRO)
+		op, err := apiclient.DeleteWorkload(ctx, reqDeleteWorkload)
+		if err != nil {
+			return fmt.Errorf("failed to start workload deletion: %w", err)
+		}
+
+		op.Wait(ctx)
+		logger.Info("Workload successfully deleted.", "workload", workload.Name)
+	}
+
+	return nil
+}
+
+func deleteApp(apiclient appHubClient, projectID, location, appID string) error {
+	var err error
+
+	ctx := context.Background()
+
+	logger := clilog.GetLogger()
+
+	err = removeAllServices(apiclient, projectID, location, appID)
+	if err != nil {
+		return fmt.Errorf("failed to remove all services: %w", err)
+	}
+
+	err = removeAllWorkloads(apiclient, projectID, location, appID)
+	if err != nil {
+		return fmt.Errorf("failed to remove all workloads: %w", err)
+	}
+
+	// Parent format: projects/{project}/locations/{location}/applications/{application_id}
+	parent := fmt.Sprintf("projects/%s/locations/%s/applications/%s", projectID, location, appID)
+
+	req := &apphubpb.DeleteApplicationRequest{
+		Name: parent,
+	}
+
+	// Delete the application
+	op, err := apiclient.DeleteApplication(ctx, req)
+	if err != nil {
+		return fmt.Errorf("failed to start application deletion: %w", err)
+	}
+
+	op.Wait(ctx)
+	logger.Info("Application successfully deleted.", "app-name", appID)
+
+	return nil
 }
 
 func getAppHubClient() (appHubClient, error) {

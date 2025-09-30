@@ -26,8 +26,10 @@ var Cmd = &cobra.Command{
 	Long:    "Manage App Hub Applications",
 }
 
-var project, managementProject string
-var locations []string
+var (
+	project, managementProject string
+	locations                  []string
+)
 
 func init() {
 	Cmd.PersistentFlags().StringVarP(&project, "project", "",
@@ -38,4 +40,5 @@ func init() {
 		"", "App Hub Management Project Id; defaults to project")
 
 	Cmd.AddCommand(GenAppsCmd)
+	Cmd.AddCommand(DelAppsCmd)
 }

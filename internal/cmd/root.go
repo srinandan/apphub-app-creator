@@ -31,6 +31,8 @@ var RootCmd = &cobra.Command{
 		clilog.Init()
 		return nil
 	},
+	SilenceErrors: true,
+	SilenceUsage:  true,
 }
 
 func Execute() {

@@ -1,4 +1,3 @@
-
 // Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -61,6 +60,30 @@ func (m *mockAppHubClient) CreateService(ctx context.Context, req *apphubpb.Crea
 
 func (m *mockAppHubClient) CreateWorkload(ctx context.Context, req *apphubpb.CreateWorkloadRequest, opts ...gax.CallOption) (*apphub.CreateWorkloadOperation, error) {
 	return m.createWorkloadFunc(ctx, req, opts...)
+}
+
+func (m *mockAppHubClient) ListServices(ctx context.Context, req *apphubpb.ListServicesRequest, opts ...gax.CallOption) *apphub.ServiceIterator {
+	return nil
+}
+
+func (m *mockAppHubClient) DeleteService(ctx context.Context, req *apphubpb.DeleteServiceRequest, opts ...gax.CallOption) (*apphub.DeleteServiceOperation, error) {
+	return nil, nil
+}
+
+func (m *mockAppHubClient) ListWorkloads(ctx context.Context, req *apphubpb.ListWorkloadsRequest, opts ...gax.CallOption) *apphub.WorkloadIterator {
+	return nil
+}
+
+func (m *mockAppHubClient) DeleteWorkload(ctx context.Context, req *apphubpb.DeleteWorkloadRequest, opts ...gax.CallOption) (*apphub.DeleteWorkloadOperation, error) {
+	return nil, nil
+}
+
+func (m *mockAppHubClient) DeleteApplication(ctx context.Context, req *apphubpb.DeleteApplicationRequest, opts ...gax.CallOption) (*apphub.DeleteApplicationOperation, error) {
+	return nil, nil
+}
+
+func (m *mockAppHubClient) ListApplications(ctx context.Context, req *apphubpb.ListApplicationsRequest, opts ...gax.CallOption) *apphub.ApplicationIterator {
+	return nil
 }
 
 func (m *mockAppHubClient) Close() error {

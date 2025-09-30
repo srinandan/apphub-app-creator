@@ -65,6 +65,9 @@ var GenAppsCmd = &cobra.Command{
 		return
 	},
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
+
+		cmd.SilenceUsage = true
+
 		labelKey := GetStringParam(cmd.Flag("label-key"))
 		labelValue := GetStringParam(cmd.Flag("label-value"))
 		logLabelKey := GetStringParam(cmd.Flag("log-label-key"))
