@@ -35,23 +35,25 @@ var GenAppsCmd = &cobra.Command{
 		tagKey := GetStringParam(cmd.Flag("tag-key"))
 		tagValue := GetStringParam(cmd.Flag("tag-value"))
 		contains := GetStringParam(cmd.Flag("contains"))
+		perK8sNamespace, _ := cmd.Flags().GetBool("per-k8s-namespace")
 
-		if project == "" {
-			return fmt.Errorf("project is a required field")
+		if parent == "" {
+			return fmt.Errorf("parent is a required field")
 		}
+
+		if !IsValidResourceFormat(parent) {
+			return fmt.Errorf("parent must be of the format projects/{project} or folders/{folder}")
+		}
+
+		if managementProject == "" && IsFolder(parent) {
+			return fmt.Errorf("management-project is a required field for folders")
+		}
+
 		if len(locations) == 0 {
 			return fmt.Errorf("at least one location is required")
 		}
-		if labelKey == "" && tagKey == "" && contains == "" && logLabelKey == "" {
-			return fmt.Errorf("label-key or tag-key or contains or log-label-key is a required field")
-		}
-		if (labelKey != "" && tagKey != "") ||
-			(labelKey != "" && contains != "") ||
-			(tagKey != "" && contains != "") ||
-			(labelKey != "" && logLabelKey != "") ||
-			(tagKey != "" && logLabelKey != "") ||
-			(contains != "" && logLabelKey != "") {
-			return fmt.Errorf("only one of label-key, tag-key, log-label-key or contains is allowed")
+		if labelKey == "" && tagKey == "" && contains == "" && logLabelKey == "" && !perK8sNamespace {
+			return fmt.Errorf("one of --label-key, --tag-key, --contains, --log-label-key, or --per-k8s-namespace is required")
 		}
 		if labelValue != "" && labelKey == "" {
 			return fmt.Errorf("label-value must be used with label-key")
@@ -62,10 +64,13 @@ var GenAppsCmd = &cobra.Command{
 		if logLabelKey != "" && logLabelValue == "" {
 			return fmt.Errorf("log-label-value must be used with log-label-key")
 		}
+		if IsFolder(parent) && logLabelKey != "" {
+			return fmt.Errorf("log-label-key is not allowed for folders")
+		}
+
 		return
 	},
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
-
 		cmd.SilenceUsage = true
 
 		labelKey := GetStringParam(cmd.Flag("label-key"))
@@ -77,10 +82,14 @@ var GenAppsCmd = &cobra.Command{
 		attributes := GetStringParam(cmd.Flag("attributes"))
 		assetTypes := GetStringParam(cmd.Flag("asset-types"))
 		contains := GetStringParam(cmd.Flag("contains"))
+		perK8sNamespace, _ := cmd.Flags().GetBool("per-k8s-namespace")
 		var attributesData, assetTypesData []byte
 
 		if managementProject == "" {
-			managementProject = project
+			managementProject, err = GetProjectID(parent)
+			if err != nil {
+				return err
+			}
 		}
 
 		if attributes != "" {
@@ -94,8 +103,15 @@ var GenAppsCmd = &cobra.Command{
 			}
 		}
 
-		if logLabelKey != "" {
-			err = client.GenerateAppsCloudLogging(project,
+		if perK8sNamespace {
+			err = client.GenerateAppsPerNamespace(parent,
+				managementProject,
+				locations,
+				attributesData)
+			return err
+		} else if logLabelKey != "" {
+			logProject, _ := GetProjectID(parent)
+			err = client.GenerateAppsCloudLogging(logProject,
 				managementProject,
 				logLabelKey,
 				logLabelValue,
@@ -115,7 +131,7 @@ var GenAppsCmd = &cobra.Command{
 				}
 			}
 
-			err = client.GenerateAppsAssetInventory(project,
+			err = client.GenerateAppsAssetInventory(parent,
 				managementProject,
 				labelKey,
 				labelValue,
@@ -134,23 +150,29 @@ var GenAppsCmd = &cobra.Command{
 func init() {
 	var labelKey, labelValue, tagKey, tagValue, contains, logLabelKey, logLabelValue string
 	var attributes, assetTypes string
+	var perK8sNamespace bool
 
 	GenAppsCmd.Flags().StringVarP(&labelKey, "label-key", "",
-		"", "GCP Resource Label Key to filter CAIS Resource")
+		"", "Key of the GCP resource label to use for grouping assets into applications.")
 	GenAppsCmd.Flags().StringVarP(&labelValue, "label-value", "",
-		"", "GCP Resource Label Value to filter CAIS Resource; Must be used with label-key")
+		"", "Value of the GCP resource label to filter assets. If specified, only assets with this label value will be processed.")
 	GenAppsCmd.Flags().StringVarP(&tagKey, "tag-key", "",
-		"", "GCP Resource Tag Key to filter CAIS Resource")
+		"", "Key of the GCP resource tag to use for grouping assets into applications.")
 	GenAppsCmd.Flags().StringVarP(&tagValue, "tag-value", "",
-		"", "GCP Resource Tag Value to filter CAIS Resource; Must be used with tag-key")
+		"", "Value of the GCP resource tag to filter assets. If specified, only assets with this tag value will be processed.")
 	GenAppsCmd.Flags().StringVarP(&logLabelKey, "log-label-key", "",
-		"", "GCP Cloud Logging Label Key to filter")
+		"", "Key of the Cloud Logging log entry label to use for discovering assets.")
 	GenAppsCmd.Flags().StringVarP(&logLabelValue, "log-label-value", "",
-		"", "GCP Cloud Logging Label Value to filter; Must be used with log-label-key")
+		"", "Value of the Cloud Logging log entry label, which will also be the application name.")
 	GenAppsCmd.Flags().StringVarP(&contains, "contains", "",
-		"", "GCP Resources whose name contains the string")
+		"", "A string that asset resource names must contain. This string will also be the application name.")
 	GenAppsCmd.Flags().StringVarP(&attributes, "attributes", "",
 		"", "Path to a json file containing App Hub attributes")
+	GenAppsCmd.Flags().BoolVarP(&perK8sNamespace, "per-k8s-namespace", "",
+		false, "Create one App Hub application per discovered Kubernetes namespace.")
 	GenAppsCmd.Flags().StringVarP(&assetTypes, "asset-types", "",
 		"", "Path to a CSV file containing CAIS Asset Types")
+
+	GenAppsCmd.MarkFlagsMutuallyExclusive("label-key", "tag-key", "contains", "log-label-key", "per-k8s-namespace")
+	GenAppsCmd.MarkFlagsRequiredTogether("label-key", "label-value")
 }

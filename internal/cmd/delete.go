@@ -36,8 +36,18 @@ var DelAppsCmd = &cobra.Command{
 		return
 	},
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
-
 		cmd.SilenceUsage = true
+
+		name := GetStringParam(cmd.Flag("name"))
+
+		if name != "" {
+			err = client.DeleteApp(
+				managementProject,
+				name,
+				locations)
+
+			return err
+		}
 
 		err = client.DeleteAllApps(
 			managementProject,
@@ -48,4 +58,8 @@ var DelAppsCmd = &cobra.Command{
 }
 
 func init() {
+	var name string
+
+	DelAppsCmd.Flags().StringVarP(&name, "name", "",
+		"", "Name of the App Hub Application. If left empty, all applications in the region will be deleted")
 }

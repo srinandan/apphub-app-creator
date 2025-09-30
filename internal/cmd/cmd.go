@@ -27,17 +27,17 @@ var Cmd = &cobra.Command{
 }
 
 var (
-	project, managementProject string
-	locations                  []string
+	parent, managementProject string
+	locations                 []string
 )
 
 func init() {
-	Cmd.PersistentFlags().StringVarP(&project, "project", "",
-		"", "GCP Project name for CAIS Asset Search")
+	Cmd.PersistentFlags().StringVarP(&parent, "parent", "",
+		"", "The scope of CAIS Asset Search. Must be of the format projects/{project} or folders/{folder}")
 	Cmd.PersistentFlags().StringArrayVarP(&locations, "locations", "",
 		[]string{}, "GCP location names to filter CAIS Asset Search (e.g. us-central1)")
 	Cmd.PersistentFlags().StringVarP(&managementProject, "management-project", "",
-		"", "App Hub Management Project Id; defaults to project")
+		"", "App Hub Management Project Id. If parent is set to projects/{project}, then management-project defaults to the same")
 
 	Cmd.AddCommand(GenAppsCmd)
 	Cmd.AddCommand(DelAppsCmd)

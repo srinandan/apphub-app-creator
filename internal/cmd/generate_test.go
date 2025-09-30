@@ -38,22 +38,22 @@ func TestGenAppsCmdArgs(t *testing.T) {
 		},
 		{
 			name:      "missing location",
-			args:      []string{"--project", "test-project", "--label-key", "test"},
-			project:   "test-project",
+			args:      []string{"--parent", "test-project", "--label-key", "test"},
+			project:   "projects/test-project",
 			locations: []string{""},
 			wantErr:   true,
 		},
 		{
 			name:      "missing label-key, tag-key, or contains",
-			args:      []string{"--project", "test-project", "--locations", "us-central1"},
-			project:   "test-project",
+			args:      []string{"--parent", "test-project", "--locations", "us-central1"},
+			project:   "projects/test-project",
 			locations: []string{"us-central1"},
 			wantErr:   true,
 		},
 		{
 			name:      "valid args with label-key",
-			args:      []string{"--project", "test-project", "--locations", "us-central1", "--label-key", "test"},
-			project:   "test-project",
+			args:      []string{"--parent", "test-project", "--locations", "us-central1", "--label-key", "test"},
+			project:   "projects/test-project",
 			locations: []string{"us-central1"},
 			wantErr:   false,
 		},
@@ -66,8 +66,8 @@ func TestGenAppsCmdArgs(t *testing.T) {
 		},
 		{
 			name:      "valid args with contains",
-			args:      []string{"--project", "test-project", "--locations", "us-central1", "--contains", "test"},
-			project:   "test-project",
+			args:      []string{"--parent", "test-project", "--locations", "us-central1", "--contains", "test"},
+			project:   "projects/test-project",
 			locations: []string{"us-central1"},
 			wantErr:   false,
 		},
@@ -75,7 +75,7 @@ func TestGenAppsCmdArgs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			project = tt.project
+			parent = tt.project
 			locations = tt.locations
 			GenAppsCmd.Flags().Visit(func(f *pflag.Flag) {
 				f.Value.Set(f.DefValue)
@@ -93,21 +93,21 @@ func TestGenAppsCmdRunE(t *testing.T) {
 	tests := []struct {
 		name      string
 		args      []string
-		project   string
+		parent    string
 		locations []string
 		wantErr   bool
 	}{
 		{
 			name:      "attributes file not found",
-			args:      []string{"--project", "test", "--locations", "test", "--label-key", "test", "--attributes", "nonexistent"},
-			project:   "test",
+			args:      []string{"--parent", "test", "--locations", "test", "--label-key", "test", "--attributes", "nonexistent"},
+			parent:    "projects/test",
 			locations: []string{"test"},
 			wantErr:   true,
 		},
 		{
 			name:      "asset-types file not found",
-			args:      []string{"--project", "test", "--locations", "test", "--label-key", "test", "--asset-types", "nonexistent"},
-			project:   "test",
+			args:      []string{"--parent", "test", "--locations", "test", "--label-key", "test", "--asset-types", "nonexistent"},
+			parent:    "projects/test",
 			locations: []string{"test"},
 			wantErr:   true,
 		},
@@ -116,7 +116,7 @@ func TestGenAppsCmdRunE(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			clilog.Init()
-			project = tt.project
+			parent = tt.parent
 			locations = tt.locations
 			GenAppsCmd.ParseFlags(tt.args)
 			err := GenAppsCmd.RunE(GenAppsCmd, []string{})

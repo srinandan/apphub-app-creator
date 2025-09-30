@@ -48,7 +48,7 @@ The primary command is `generate`, which creates App Hub applications based on a
 
 The `generate` command requires the following flags:
 
-* `--project-id`: (Required) The GCP project ID where the resources are located.
+* `--parent`: (Required) The scope of CAIS Asset Search. Must be of the format projects/{project} or folders/{folder}.
 * `--locations`: (Required) GCP location names to filter CAIS Asset Search (e.g. us-central1).
 * `--label-key`: (Optional) The GCP resource label key to filter resources from Cloud Asset Inventory.
 * `--label-value`: (Optional) The GCP resource label value to filter resources from Cloud Asset Inventory. Must be used with `label-key`
@@ -57,7 +57,8 @@ The `generate` command requires the following flags:
 * `--tag-key`: (Optional) The GCP resource tag key to filter resources from Cloud Asset Inventory.
 * `--tag-value`: (Optional) The GCP resource tag value to filter resources from Cloud Asset Inventory. Must be used with `tag-key`
 * `--contains`: (Optional) GCP Resources whose name contains the string.
-* `--management-project`: (Optional) The project where App Hub is managed. Defaults to the `--project-id`.
+* `--per-k8s-namespace`: (Optional) Create one App Hub application per discovered Kubernetes namespace.
+* `--management-project`: (Optional) App Hub Management Project Id. If parent is set to projects/{project}, then management-project defaults to the same.
 * `--attributes-file`: (Optional) Path to a JSON file containing App Hub application attributes.
 * `--assets-file`: (Optional) Path to a CSV file containing a list of asset types to search in CAIS.
 

@@ -16,6 +16,8 @@ package client
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"internal/clilog"
 	"strings"
@@ -30,14 +32,14 @@ var (
 	getAppHubClientFunc = getAppHubClient
 )
 
-func GenerateAppsAssetInventory(projectID, managementProject, labelKey, labelValue, tagKey, tagValue,
+func GenerateAppsAssetInventory(parent, managementProject, labelKey, labelValue, tagKey, tagValue,
 	contains string, locations []string, attributesData, assetTypesData []byte,
 ) error {
 	logger := clilog.GetLogger()
 	var appLocation string
 
 	logger.Info("Running CAIS Search with location and Filters")
-	assets, err := searchAssetsFunc(projectID, labelKey, labelValue, tagKey, tagValue, contains, locations, assetTypesData)
+	assets, err := searchAssetsFunc(parent, labelKey, labelValue, tagKey, tagValue, contains, locations, assetTypesData)
 	if err != nil {
 		return fmt.Errorf("error searching assets: %w", err)
 	}
@@ -217,6 +219,98 @@ func DeleteAllApps(managementProject string, locations []string) error {
 	return nil
 }
 
+func GenerateAppsPerNamespace(parent, managementProject string, locations []string, attributesData []byte) error {
+	logger := clilog.GetLogger()
+	var appLocation string
+
+	logger.Info("Running CAIS Search with location and Filters")
+	assets, err := searchKubernetes(parent, locations)
+	if err != nil {
+		return fmt.Errorf("error searching assets: %w", err)
+	}
+
+	if len(assets) == 0 {
+		logger.Warn("No assets found that matched the filter")
+		return fmt.Errorf("no assets found that matched the filter")
+	}
+
+	logger.Info("Found assets to process", "count", len(assets))
+
+	apphubClient, err := getAppHubClientFunc()
+	if err != nil {
+		return fmt.Errorf("error getting apphub client: %w", err)
+	}
+
+	defer closeAppHubClient(apphubClient)
+
+	if len(locations) > 1 {
+		appLocation = "global"
+	} else {
+		appLocation = locations[0]
+	}
+
+	// For each asset returned
+	for _, asset := range assets {
+		logger.Info("Processing asset", "assetName", asset.Name, "assetType", asset.AssetType)
+
+		var discoveredName, appName string
+
+		// Identity if it is a service or workload
+		appHubType := identifyServiceOrWorkload(asset.AssetType)
+
+		// Lookup App Hub to get the discovered name
+		if discoveredName, err = lookupDiscoveredServiceOrWorkload(apphubClient, managementProject,
+			asset.Location,
+			asset.Name,
+			appHubType); err != nil {
+			logger.Warn("Discovered Service/Workload not found, perhaps already registered", "assetName", asset.Name, "error", err)
+		}
+		// If the discovered name is not empty,
+		if discoveredName != "" {
+			appName = getAppNameForKubernetes(asset.ParentFullResourceName)
+			// create the application if it does not exist
+			if _, err = getOrCreateAppHubApplication(apphubClient, managementProject, appLocation, appName, attributesData); err != nil {
+				logger.Error("Failed to create or get application", "application", appName, "error", err)
+				return fmt.Errorf("error creating application: %w", err)
+			}
+			displayName := asset.Name[strings.LastIndex(asset.Name, "/")+1:]
+
+			// Registry the service or workload
+			if err = registerServiceWithApplication(apphubClient, managementProject,
+				appLocation,
+				appName,
+				discoveredName,
+				displayName,
+				appHubType,
+				attributesData); err != nil {
+				logger.Error("Failed to register service with application", "application", appName, "service", displayName, "error", err)
+				return fmt.Errorf("error registering service: %w", err)
+			}
+		}
+	}
+	logger.Info("Successfully finished processing all assets.")
+	return nil
+}
+
+func DeleteApp(managementProject, name string, locations []string) error {
+	logger := clilog.GetLogger()
+	apphubClient, err := getAppHubClientFunc()
+	if err != nil {
+		return fmt.Errorf("error getting apphub client: %w", err)
+	}
+
+	defer closeAppHubClient(apphubClient)
+
+	logger.Info("Attempting deletion of application " + name)
+	for _, location := range locations {
+		if err = deleteApp(apphubClient, managementProject, location, name); err != nil {
+			return fmt.Errorf("error deleting application %s: %w", name, err)
+		}
+	}
+	logger.Info("Successfully finished deleting application.")
+	return nil
+}
+
 func getAppName(labelKey, tagKey, contains string, asset *assetpb.ResourceSearchResult) string {
 	if labelKey != "" {
 		return asset.GetLabels()[labelKey]
@@ -230,4 +324,31 @@ func getAppName(labelKey, tagKey, contains string, asset *assetpb.ResourceSearch
 	} else {
 		return contains
 	}
+}
+
+func getAppNameForKubernetes(s string) string {
+	namespace := s[strings.LastIndex(s, "/")+1:]
+	project := strings.Split(s, "/")[2]
+	cluster := strings.Split(s, "/")[5]
+	return fmt.Sprintf("%s-%s-%s", namespace, createShortSHA(cluster), createShortSHA(project))
+}
+
+// createShortSHA generates a truncated SHA-256 hash of a string.
+func createShortSHA(input string) string {
+	// Create a new SHA-256 hasher.
+	hasher := sha256.New()
+
+	// Write the input string to the hasher.
+	hasher.Write([]byte(input))
+
+	// Get the full hash sum as a byte slice.
+	fullHash := hasher.Sum(nil)
+
+	// Convert the byte slice to a hexadecimal string.
+	fullHashStr := hex.EncodeToString(fullHash)
+
+	// Truncate the string to the desired length (e.g., 7 characters).
+	shortHash := fullHashStr[:7]
+
+	return shortHash
 }
