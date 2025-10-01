@@ -58,6 +58,7 @@ The `generate` command requires the following flags:
 * `--tag-value`: (Optional) The GCP resource tag value to filter resources from Cloud Asset Inventory. Must be used with `tag-key`
 * `--contains`: (Optional) GCP Resources whose name contains the string.
 * `--per-k8s-namespace`: (Optional) Create one App Hub application per discovered Kubernetes namespace.
+* `--per-k8s-app-label`: (Optional) Create one App Hub application per app.kubernetes.io/name label value.
 * `--management-project`: (Optional) App Hub Management Project Id. If parent is set to projects/{project}, then management-project defaults to the same.
 * `--attributes-file`: (Optional) Path to a JSON file containing App Hub application attributes.
 * `--assets-file`: (Optional) Path to a CSV file containing a list of asset types to search in CAIS.
@@ -121,7 +122,7 @@ This will:
 The `delete` command deletes one or more applications in a given set of locations. The `delete` command requires the following flags:
 
 * `--locations`: (Required) GCP location names to delete applications from (e.g. us-central1).
-* `--management-project`: (Optional) The project where App Hub is managed. Defaults to the `--project-id`.
+* `--management-project`: (Required) The project where App Hub is managed.
 
 ## Contributing
 

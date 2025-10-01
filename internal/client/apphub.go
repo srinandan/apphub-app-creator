@@ -384,7 +384,7 @@ func deleteApp(apiclient appHubClient, projectID, location, appID string) error 
 		return fmt.Errorf("failed to start application deletion: %w", err)
 	}
 
-	op.Wait(ctx)
+	err = op.Wait(ctx)
 	if err != nil {
 		return fmt.Errorf("application deletion failed during wait: %w", err)
 	}

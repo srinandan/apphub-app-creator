@@ -292,6 +292,79 @@ func GenerateAppsPerNamespace(parent, managementProject string, locations []stri
 	return nil
 }
 
+func GenerateKubernetesApps(parent, managementProject string, locations []string, attributesData []byte) error {
+	logger := clilog.GetLogger()
+	var appLocation string
+
+	logger.Info("Running CAIS Search with location and Filters")
+	assets, err := searchKubernetesApps(parent, locations)
+	if err != nil {
+		return fmt.Errorf("error searching assets: %w", err)
+	}
+
+	if len(assets) == 0 {
+		logger.Warn("No assets found that matched the filter")
+		return fmt.Errorf("no assets found that matched the filter")
+	}
+
+	logger.Info("Found assets to process", "count", len(assets))
+
+	apphubClient, err := getAppHubClientFunc()
+	if err != nil {
+		return fmt.Errorf("error getting apphub client: %w", err)
+	}
+
+	defer closeAppHubClient(apphubClient)
+
+	if len(locations) > 1 {
+		appLocation = "global"
+	} else {
+		appLocation = locations[0]
+	}
+
+	// For each asset returned
+	for _, asset := range assets {
+		logger.Info("Processing asset", "assetName", asset.Name, "assetType", asset.AssetType)
+
+		var discoveredName, appName string
+
+		// Identity if it is a service or workload
+		appHubType := identifyServiceOrWorkload(asset.AssetType)
+
+		// Lookup App Hub to get the discovered name
+		if discoveredName, err = lookupDiscoveredServiceOrWorkload(apphubClient, managementProject,
+			asset.Location,
+			asset.Name,
+			appHubType); err != nil {
+			logger.Warn("Discovered Service/Workload not found, perhaps already registered", "assetName", asset.Name, "error", err)
+		}
+		// If the discovered name is not empty,
+		if discoveredName != "" {
+			appName = asset.GetLabels()[K8S_APP_LABEL]
+			// create the application if it does not exist
+			if _, err = getOrCreateAppHubApplication(apphubClient, managementProject, appLocation, appName, attributesData); err != nil {
+				logger.Error("Failed to create or get application", "application", appName, "error", err)
+				return fmt.Errorf("error creating application: %w", err)
+			}
+			displayName := asset.Name[strings.LastIndex(asset.Name, "/")+1:]
+
+			// Registry the service or workload
+			if err = registerServiceWithApplication(apphubClient, managementProject,
+				appLocation,
+				appName,
+				discoveredName,
+				displayName,
+				appHubType,
+				attributesData); err != nil {
+				logger.Error("Failed to register service with application", "application", appName, "service", displayName, "error", err)
+				return fmt.Errorf("error registering service: %w", err)
+			}
+		}
+	}
+	logger.Info("Successfully finished processing all assets.")
+	return nil
+}
+
 func DeleteApp(managementProject, name string, locations []string) error {
 	logger := clilog.GetLogger()
 	apphubClient, err := getAppHubClientFunc()
