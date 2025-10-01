@@ -55,6 +55,13 @@ var DelAppsCmd = &cobra.Command{
 
 		return err
 	},
+	Example: `Delete all applications in the following locations: ` + delAppsCmdExamples[0] + `
+Delete application with name $name in the location: ` + delAppsCmdExamples[1],
+}
+
+var delAppsCmdExamples = []string{
+	`apphub-app-creator apps delete --management-project $project --locations us-west1 --locations us-east1`,
+	`apphub-app-creator apps delete --name $name --management-project $project --locations us-west1`,
 }
 
 func init() {

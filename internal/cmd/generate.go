@@ -145,6 +145,17 @@ var GenAppsCmd = &cobra.Command{
 			return err
 		}
 	},
+	Example: `Create apps by searching CAIS based on GCP Resource labels in the following locations: ` + genAppsCmdExamples[0] + `
+Create apps by searching CAIS based on GCP Resource tags in the following locations: ` + genAppsCmdExamples[1] + `
+Create an application per Kubernetes namespace per GKE Cluster in the following locations: ` + genAppsCmdExamples[2] + `
+Create apps by searching Cloud Logging labels in the following locations: ` + genAppsCmdExamples[3],
+}
+
+var genAppsCmdExamples = []string{
+	`apphub-app-creator apps generate --parent projects/$project --management-project $mp --locations us-west1 --locations us-east1 --label-key $label_key`,
+	`apphub-app-creator apps generate --parent projects/$project --management-project $mp --locations us-west1 --label-key $tag_key --tag-value $tag_value`,
+	`apphub-app-creator apps generate --parent projects/$project --management-project $mp --locations us-west1 --per-k8s-namespace=true`,
+	`apphub-app-creator apps generate --parent folders/$folder --management-project $mp --locations us-west1 --log-label-key $log_label_key --log-label-value $log_label_value`,
 }
 
 func init() {
