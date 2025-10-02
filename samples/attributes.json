@@ -1,0 +1,30 @@
+{
+    "criticality": {
+        "type": "MISSION_CRITICAL"
+    },
+    "environment": {
+        "type": "PRODUCTION"
+    },
+    "developerOwners": [
+        {
+            "email": "dev-lead@example.com",
+            "displayName": "John Doe"
+        },
+        {
+            "email": "dev-team@example.com",
+            "displayName": "AppDev Team"
+        }
+    ],
+    "operatorOwners": [
+        {
+            "email": "sre-team@example.com",
+            "displayName": "Site Reliability Team"
+        }
+    ],
+    "businessOwners": [
+        {
+            "email": "product-manager@example.com",
+            "displayName": "Jane Doe"
+        }
+    ]
+}

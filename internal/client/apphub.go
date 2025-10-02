@@ -18,10 +18,12 @@ import (
 	"context"
 	"fmt"
 	"internal/clilog"
+	"regexp"
 	"strings"
 
 	apphub "cloud.google.com/go/apphub/apiv1"
 	apphubpb "cloud.google.com/go/apphub/apiv1/apphubpb"
+	assetpb "cloud.google.com/go/asset/apiv1/assetpb"
 	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -29,7 +31,7 @@ import (
 
 // lookupDiscoveredService finds a DiscoveredService or Workload resource in App Hub based on its underlying resource URI.
 // The DiscoveredService/Workload represents an existing GCP resource (like a Cloud Run service) that App Hub is aware of.
-func lookupDiscoveredServiceOrWorkload(apiclient appHubClient, projectID, location, resourceURI, appHubType string) (string, error) {
+func lookupDiscoveredServiceOrWorkload(apiclient appHubClient, projectID, location, resourceURI, appHubType string, asset *assetpb.ResourceSearchResult) (string, error) {
 	ctx := context.Background()
 	logger := clilog.GetLogger()
 
@@ -42,17 +44,18 @@ func lookupDiscoveredServiceOrWorkload(apiclient appHubClient, projectID, locati
 
 	switch appHubType {
 	case "discoveredService":
+		fixedResourceURI := fixResourceURI(resourceURI, asset)
 		req := &apphubpb.LookupDiscoveredServiceRequest{
 			Parent: parent,
-			Uri:    resourceURI,
+			Uri:    fixedResourceURI,
 		}
-		logger.Info("Looking up Discovered Service for URI", "parent", parent, "uri", resourceURI)
+		logger.Info("Looking up Discovered Service for URI", "parent", parent, "uri", fixedResourceURI)
 		var response *apphubpb.LookupDiscoveredServiceResponse
 		response, err = apiclient.LookupDiscoveredService(ctx, req)
 		if err == nil {
 			if response.GetDiscoveredService() == nil {
-				logger.Warn("Lookup API succeeded but returned no discovered service", "uri", resourceURI)
-				return "", fmt.Errorf("discovered service not found for URI: %s", resourceURI)
+				logger.Warn("Lookup API succeeded but returned no discovered service", "uri", fixedResourceURI)
+				return "", fmt.Errorf("discovered service not found for URI: %s", fixedResourceURI)
 			}
 			name = response.GetDiscoveredService().GetName()
 		}
@@ -227,6 +230,11 @@ func registerServiceWithApplication(apiclient appHubClient, projectID, location,
 		// Wait for the LRO to complete
 		createdService, err := op.Wait(ctx)
 		if err != nil {
+			// Check for ALREADY_EXISTS if the workload is already registered to this app
+			if st, ok := status.FromError(err); ok && st.Code() == codes.FailedPrecondition {
+				logger.Info("Service is already registered with application. Skipping creation", "service", id, "app-name", appID)
+				return nil
+			}
 			return fmt.Errorf("service registration failed during wait: %w", err)
 		}
 
@@ -260,6 +268,11 @@ func registerServiceWithApplication(apiclient appHubClient, projectID, location,
 		// Wait for the LRO to complete
 		createdWorkload, err := op.Wait(ctx)
 		if err != nil {
+			// Check for ALREADY_EXISTS if the workload is already registered to this app
+			if st, ok := status.FromError(err); ok && st.Code() == codes.FailedPrecondition {
+				logger.Info("Workload is already registered with application. Skipping creation", "workload", id, "app-name", appID)
+				return nil
+			}
 			return fmt.Errorf("workload registration failed during wait: %w", err)
 		}
 
@@ -405,4 +418,22 @@ func getAppHubClient() (appHubClient, error) {
 
 func closeAppHubClient(apiclient appHubClient) {
 	apiclient.Close()
+}
+
+func fixResourceURI(resourceURI string, asset *assetpb.ResourceSearchResult) string {
+	if asset == nil {
+		return resourceURI
+	}
+	if asset.AssetType == "sqladmin.googleapis.com/Instance" {
+		// step 1 replace the URI
+		resourceURI = strings.Replace(resourceURI, "cloudsql.googleapis.com", "sqladmin.googleapis.com", 1)
+
+		// step 2 get the project number
+		projectNumber := strings.Split(asset.Project, "/")[1]
+
+		// step 3 replace project id with project number
+		re := regexp.MustCompile(`(projects/)([^/]+)(/instances/)`)
+		resourceURI = re.ReplaceAllString(resourceURI, fmt.Sprintf("${1}%s${3}", projectNumber))
+	}
+	return resourceURI
 }

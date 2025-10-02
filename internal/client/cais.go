@@ -37,7 +37,7 @@ var INCLUDED_ASSETS = []string{
 	// networking
 	"compute.googleapis.com/ForwardingRule",
 	"compute.googleapis.com/BackendService",
-	"gateway.networking.k8s.io/Gateway",
+	//"gateway.networking.k8s.io/Gateway",
 	// storage
 	"storage.googleapis.com/Bucket",
 	"pubsub.googleapis.com/Topic",
@@ -103,9 +103,15 @@ func searchAssets(parent, labelKey, labelValue, tagKey, tagValue, contains strin
 		}
 	} else if tagKey != "" {
 		if tagValue != "" {
-			queryParts = append(queryParts, fmt.Sprintf("tagKeys.%s:%s", tagKey, tagValue))
+			queryParts = append(queryParts,
+				fmt.Sprintf("(tagKeys:%s AND tagValues:%s) OR (effectiveTagKeys:%s AND effectiveTagValues:%s)",
+					tagKey, tagValue, tagKey, tagValue))
 		} else {
-			queryParts = append(queryParts, fmt.Sprintf("tagKeys.%s:*", tagKey))
+			queryParts = append(queryParts, fmt.Sprintf("(tagKeys:%s OR effectiveTagKeys:%s)", tagKey, tagKey))
+		}
+		// exclude kubernetes system namespaces
+		for _, ns := range GKE_EXCLUSION_NAMESPACES {
+			queryParts = append(queryParts, fmt.Sprintf("NOT parentFullResourceName : \"%s\"", ns))
 		}
 	} else if contains != "" {
 		queryParts = append(queryParts, fmt.Sprintf("name:%s", contains))

@@ -34,9 +34,6 @@ var GenAppsCmd = &cobra.Command{
 		logLabelValue := GetStringParam(cmd.Flag("log-label-value"))
 		tagKey := GetStringParam(cmd.Flag("tag-key"))
 		tagValue := GetStringParam(cmd.Flag("tag-value"))
-		contains := GetStringParam(cmd.Flag("contains"))
-		perK8sNamespace, _ := cmd.Flags().GetBool("per-k8s-namespace")
-		perK8sAppLabel, _ := cmd.Flags().GetBool("per-k8s-app-label")
 
 		if parent == "" {
 			return fmt.Errorf("parent is a required field")
@@ -52,9 +49,6 @@ var GenAppsCmd = &cobra.Command{
 
 		if len(locations) == 0 {
 			return fmt.Errorf("at least one location is required")
-		}
-		if labelKey == "" && tagKey == "" && contains == "" && logLabelKey == "" && !perK8sNamespace && !perK8sAppLabel {
-			return fmt.Errorf("one of --label-key, --tag-key, --contains, --log-label-key, or --per-k8s-namespace or --per-k8s-app-label is required")
 		}
 		if labelValue != "" && labelKey == "" {
 			return fmt.Errorf("label-value must be used with label-key")
@@ -198,5 +192,7 @@ func init() {
 		"", "Path to a CSV file containing CAIS Asset Types")
 
 	GenAppsCmd.MarkFlagsMutuallyExclusive("label-key", "tag-key", "contains", "log-label-key", "per-k8s-namespace", "per-k8s-app-label")
-	GenAppsCmd.MarkFlagsRequiredTogether("label-key", "label-value")
+	GenAppsCmd.MarkFlagsMutuallyExclusive("label-value", "tag-value")
+	GenAppsCmd.MarkFlagsRequiredTogether("tag-key", "tag-value")
+	GenAppsCmd.MarkFlagsOneRequired("label-key", "tag-key", "contains", "log-label-key", "per-k8s-namespace", "per-k8s-app-label")
 }

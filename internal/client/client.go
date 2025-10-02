@@ -77,12 +77,13 @@ func GenerateAppsAssetInventory(parent, managementProject, labelKey, labelValue,
 		if discoveredName, err = lookupDiscoveredServiceOrWorkload(apphubClient, managementProject,
 			asset.Location,
 			asset.Name,
-			appHubType); err != nil {
+			appHubType,
+			asset); err != nil {
 			logger.Warn("Discovered Service/Workload not found, perhaps already registered", "assetName", asset.Name, "error", err)
 		}
 		// If the discovered name is not empty,
 		if discoveredName != "" {
-			appName = getAppName(labelKey, tagKey, contains, asset)
+			appName = getAppName(labelKey, tagKey, contains, labelValue, tagValue, asset)
 			// create the application if it does not exist
 			if _, err = getOrCreateAppHubApplication(apphubClient, managementProject, appLocation, appName, attributesData); err != nil {
 				logger.Error("Failed to create or get application", "application", appName, "error", err)
@@ -148,7 +149,7 @@ func GenerateAppsCloudLogging(projectID, managementProject, logLabelKey, logLabe
 		if discoveredName, err = lookupDiscoveredServiceOrWorkload(apphubClient, managementProject,
 			asset.Location,
 			assetURI,
-			asset.AppHubType); err != nil {
+			asset.AppHubType, nil); err != nil {
 			logger.Warn("Discovered Service/Workload not found, perhaps already registered", "assetURI", assetURI, "error", err)
 		}
 
@@ -262,7 +263,8 @@ func GenerateAppsPerNamespace(parent, managementProject string, locations []stri
 		if discoveredName, err = lookupDiscoveredServiceOrWorkload(apphubClient, managementProject,
 			asset.Location,
 			asset.Name,
-			appHubType); err != nil {
+			appHubType,
+			asset); err != nil {
 			logger.Warn("Discovered Service/Workload not found, perhaps already registered", "assetName", asset.Name, "error", err)
 		}
 		// If the discovered name is not empty,
@@ -335,7 +337,8 @@ func GenerateKubernetesApps(parent, managementProject string, locations []string
 		if discoveredName, err = lookupDiscoveredServiceOrWorkload(apphubClient, managementProject,
 			asset.Location,
 			asset.Name,
-			appHubType); err != nil {
+			appHubType,
+			asset); err != nil {
 			logger.Warn("Discovered Service/Workload not found, perhaps already registered", "assetName", asset.Name, "error", err)
 		}
 		// If the discovered name is not empty,
@@ -384,13 +387,26 @@ func DeleteApp(managementProject, name string, locations []string) error {
 	return nil
 }
 
-func getAppName(labelKey, tagKey, contains string, asset *assetpb.ResourceSearchResult) string {
-	if labelKey != "" {
+func getAppName(labelKey, tagKey, contains, labelValue, tagValue string, asset *assetpb.ResourceSearchResult) string {
+	if labelValue != "" {
+		return labelValue
+	} else if tagValue != "" {
+		return tagValue
+	} else if labelKey != "" {
 		return asset.GetLabels()[labelKey]
 	} else if tagKey != "" {
 		for _, tag := range asset.GetTags() {
-			if *tag.TagKey == tagKey {
-				return *tag.TagValue
+			lastElement := tag.GetTagKey()[strings.LastIndex(tag.GetTagKey(), "/")+1:]
+			if lastElement == tagKey {
+				return tag.GetTagValue()[strings.LastIndex(tag.GetTagValue(), "/")+1:]
+			}
+		}
+		for _, effectiveTagDetails := range asset.GetEffectiveTags() {
+			for _, tag := range effectiveTagDetails.GetEffectiveTags() {
+				lastElement := tag.GetTagKey()[strings.LastIndex(tag.GetTagKey(), "/")+1:]
+				if lastElement == tagKey {
+					return tag.GetTagValue()[strings.LastIndex(tag.GetTagValue(), "/")+1:]
+				}
 			}
 		}
 		return "unknown"
