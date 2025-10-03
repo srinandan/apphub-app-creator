@@ -24,6 +24,7 @@ import (
 	asset "cloud.google.com/go/asset/apiv1"
 	assetpb "cloud.google.com/go/asset/apiv1/assetpb"
 	"google.golang.org/api/iterator"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 var INCLUDED_ASSETS = []string{
@@ -48,6 +49,8 @@ var INCLUDED_ASSETS = []string{
 	"sqladmin.googleapis.com/Instance",
 	"alloydb.googleapis.com/Instance",
 	"redis.googleapis.com/Instance",
+	// config
+	"secretmanager.googleapis.com/Secret",
 }
 
 var KUBERNETES_ASSETS = []string{
@@ -129,12 +132,15 @@ func searchAssets(parent, labelKey, labelValue, tagKey, tagValue, contains strin
 
 	logger.Info("Searching asset types", "assets", searchAssetTypes)
 
+	readMask, _ := fieldmaskpb.New(&assetpb.ResourceSearchResult{}, "*")
+
 	// Construct the search request
 	req := &assetpb.SearchAllResourcesRequest{
 		Scope:      parent,
 		Query:      fullQuery,
 		AssetTypes: searchAssetTypes,
 		PageSize:   MAX_PAGE,
+		ReadMask:   readMask,
 	}
 
 	// Call SearchAllResources and iterate over the results
