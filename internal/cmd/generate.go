@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"internal/client"
 	"os"
+	"strings"
+	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 )
@@ -79,8 +81,10 @@ var GenAppsCmd = &cobra.Command{
 		contains := GetStringParam(cmd.Flag("contains"))
 		perK8sNamespace, _ := cmd.Flags().GetBool("per-k8s-namespace")
 		perK8sAppLabel, _ := cmd.Flags().GetBool("per-k8s-app-label")
+		reportOnly, _ := cmd.Flags().GetBool("report-only")
 
 		var attributesData, assetTypesData []byte
+		var generatedApplications map[string][]string
 
 		if managementProject == "" {
 			managementProject, err = GetProjectID(parent)
@@ -101,27 +105,26 @@ var GenAppsCmd = &cobra.Command{
 		}
 
 		if perK8sNamespace {
-			err = client.GenerateAppsPerNamespace(parent,
+			generatedApplications, err = client.GenerateAppsPerNamespace(parent,
 				managementProject,
 				locations,
-				attributesData)
-			return err
+				attributesData,
+				reportOnly)
 		} else if perK8sAppLabel {
-			err = client.GenerateKubernetesApps(parent,
+			generatedApplications, err = client.GenerateKubernetesApps(parent,
 				managementProject,
 				locations,
-				attributesData)
-			return err
+				attributesData,
+				reportOnly)
 		} else if logLabelKey != "" {
 			logProject, _ := GetProjectID(parent)
-			err = client.GenerateAppsCloudLogging(logProject,
+			generatedApplications, err = client.GenerateAppsCloudLogging(logProject,
 				managementProject,
 				logLabelKey,
 				logLabelValue,
 				locations,
-				attributesData)
-
-			return err
+				attributesData,
+				reportOnly)
 		} else {
 			if assetTypes != "" {
 				if _, err := os.Stat(assetTypes); os.IsNotExist(err) {
@@ -134,7 +137,7 @@ var GenAppsCmd = &cobra.Command{
 				}
 			}
 
-			err = client.GenerateAppsAssetInventory(parent,
+			generatedApplications, err = client.GenerateAppsAssetInventory(parent,
 				managementProject,
 				labelKey,
 				labelValue,
@@ -143,10 +146,24 @@ var GenAppsCmd = &cobra.Command{
 				contains,
 				locations,
 				attributesData,
-				assetTypesData)
-
+				assetTypesData,
+				reportOnly)
+		}
+		if err != nil {
 			return err
 		}
+		if reportOnly {
+			w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', tabwriter.Debug)
+			defer w.Flush()
+
+			fmt.Fprintln(w, "APP NAME\tDISCOVERED UUID\tAPP HUB TYPE\tRESOURCE URI")
+			fmt.Fprintln(w, "--------\t---------------\t-------------\t-----------")
+			for appName, generatedAppValues := range generatedApplications {
+				row := strings.Join(generatedAppValues, "\t")
+				fmt.Fprintf(w, "%s\t%s\n", appName, row)
+			}
+		}
+		return nil
 	},
 	Example: `Create apps by searching CAIS based on GCP Resource labels in the following locations: ` + genAppsCmdExamples[0] + `
 Create apps by searching CAIS based on GCP Resource tags in the following locations: ` + genAppsCmdExamples[1] + `
@@ -166,7 +183,7 @@ var genAppsCmdExamples = []string{
 func init() {
 	var labelKey, labelValue, tagKey, tagValue, contains, logLabelKey, logLabelValue string
 	var attributes, assetTypes string
-	var perK8sNamespace, perK8sAppLabel bool
+	var perK8sNamespace, perK8sAppLabel, reportOnly bool
 
 	GenAppsCmd.Flags().StringVarP(&labelKey, "label-key", "",
 		"", "Key of the GCP resource label to use for grouping assets into applications.")
@@ -190,6 +207,8 @@ func init() {
 		false, "Create one App Hub application per app.kubernetes.io/name label value.")
 	GenAppsCmd.Flags().StringVarP(&assetTypes, "asset-types", "",
 		"", "Path to a CSV file containing CAIS Asset Types")
+	GenAppsCmd.Flags().BoolVarP(&reportOnly, "report-only", "",
+		false, "Generates a report of discovered assets without creating applications or registering services/workloads.")
 
 	GenAppsCmd.MarkFlagsMutuallyExclusive("label-key", "tag-key", "contains", "log-label-key", "per-k8s-namespace", "per-k8s-app-label")
 	GenAppsCmd.MarkFlagsMutuallyExclusive("label-value", "tag-value")
