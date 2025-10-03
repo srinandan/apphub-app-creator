@@ -15,14 +15,19 @@
 package clilog
 
 import (
+	"io"
 	"log/slog"
 	"os"
 )
 
 var logger *slog.Logger
 
-func Init() {
-	logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
+func Init(opts *slog.HandlerOptions) {
+	if opts != nil {
+		logger = slog.New(slog.NewTextHandler(os.Stdout, opts))
+	} else {
+		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+	}
 }
 
 func GetLogger() *slog.Logger {
