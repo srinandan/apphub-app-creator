@@ -62,6 +62,7 @@ The `generate` command requires the following flags:
 * `--management-project`: (Optional) App Hub Management Project Id. If parent is set to projects/{project}, then management-project defaults to the same.
 * `--attributes-file`: (Optional) Path to a JSON file containing App Hub application attributes.
 * `--assets-file`: (Optional) Path to a CSV file containing a list of asset types to search in CAIS.
+* `--report-only`: (Optional) Generates a report of discovered assets without creating applications or registering services/workloads.
 
 #### Examples
 
