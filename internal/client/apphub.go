@@ -84,9 +84,14 @@ func lookupDiscoveredServiceOrWorkload(apiclient appHubClient, projectID, locati
 			if st.Code() == codes.PermissionDenied {
 				permission := "apphub.discoveredServices.list"
 				if appHubType == "discoveredWorkload" {
-					permission = "apphub.workloads.list"
+					permission = "apphub.discoveredWorkloads.list"
 				}
 				return "", fmt.Errorf("permission denied: ensure the user has the '%s' permission on the project: %w", permission, err)
+			} else if st.Code() == codes.NotFound {
+				// if it is a k8s gateway, try looking again in the global region
+				if strings.Contains(resourceURI, "gateway.networking.k8s.io") {
+					return lookupDiscoveredServiceOrWorkload(apiclient, projectID, "global", resourceURI, appHubType, asset)
+				}
 			}
 			logger.Error("App Hub lookup API failed", "code", st.Code().String(), "error", err)
 			return "", fmt.Errorf("app hub lookup API failed (Code: %s): %w", st.Code().String(), err)
