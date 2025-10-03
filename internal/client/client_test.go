@@ -41,7 +41,7 @@ func (m *mockAssetClient) Close() error {
 }
 
 func TestMain(m *testing.M) {
-	clilog.Init()
+	clilog.Init(nil)
 	os.Exit(m.Run())
 }
 
