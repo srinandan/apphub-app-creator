@@ -82,6 +82,7 @@ var GenAppsCmd = &cobra.Command{
 		perK8sNamespace, _ := cmd.Flags().GetBool("per-k8s-namespace")
 		perK8sAppLabel, _ := cmd.Flags().GetBool("per-k8s-app-label")
 		reportOnly, _ := cmd.Flags().GetBool("report-only")
+		autoDetect, _ := cmd.Flags().GetBool("auto-detect")
 
 		var attributesData, assetTypesData []byte
 		var generatedApplications map[string][]string
@@ -104,7 +105,13 @@ var GenAppsCmd = &cobra.Command{
 			}
 		}
 
-		if perK8sNamespace {
+		if autoDetect {
+			generatedApplications, err = client.GenerateFromAll(parent,
+				managementProject,
+				locations,
+				attributesData,
+				reportOnly)
+		} else if perK8sNamespace {
 			generatedApplications, err = client.GenerateAppsPerNamespace(parent,
 				managementProject,
 				locations,
@@ -175,7 +182,9 @@ Create apps by searching Cloud Logging labels in the following locations: ` + ge
 
 Create one App Hub application per app.kubernetes.io/name label value: ` + genAppsCmdExamples[4] + `
 
-Generate a report of discovered assets: ` + genAppsCmdExamples[5],
+Generate a report of discovered assets: ` + genAppsCmdExamples[5] + `
+
+Automatically detect applications based on well known labels and tags: ` + genAppsCmdExamples[6],
 }
 
 var genAppsCmdExamples = []string{
@@ -185,12 +194,13 @@ var genAppsCmdExamples = []string{
 	`apphub-app-creator apps generate --parent folders/$folder --management-project $mp --locations us-west1 --log-label-key $log_label_key --log-label-value $log_label_value`,
 	`apphub-app-creator apps generate --parent projects/$project --management-project $mp --locations us-west1 --per-k8s-app-label=true`,
 	`apphub-app-creator apps generate --parent projects/$project --management-project $mp --locations us-west1 --label-key $label_key --report-only=true`,
+	`apphub-app-creator apps generate --parent projects/$project --management-project $mp --locations us-west1 --auto-detect=true --report-only=true`,
 }
 
 func init() {
 	var labelKey, labelValue, tagKey, tagValue, contains, logLabelKey, logLabelValue string
 	var attributes, assetTypes string
-	var perK8sNamespace, perK8sAppLabel, reportOnly bool
+	var perK8sNamespace, perK8sAppLabel, reportOnly, autoDetect bool
 
 	GenAppsCmd.Flags().StringVarP(&labelKey, "label-key", "",
 		"", "Key of the GCP resource label to use for grouping assets into applications.")
@@ -216,8 +226,10 @@ func init() {
 		"", "Path to a CSV file containing CAIS Asset Types")
 	GenAppsCmd.Flags().BoolVarP(&reportOnly, "report-only", "",
 		false, "Generates a report of discovered assets without creating applications or registering services/workloads.")
+	GenAppsCmd.Flags().BoolVarP(&autoDetect, "auto-detect", "",
+		false, "Automatically detect applications using well known identifiers through labels and tags.")
 
-	GenAppsCmd.MarkFlagsMutuallyExclusive("label-key", "tag-key", "contains", "log-label-key", "per-k8s-namespace", "per-k8s-app-label")
+	GenAppsCmd.MarkFlagsMutuallyExclusive("auto-detect", "label-key", "tag-key", "contains", "log-label-key", "per-k8s-namespace", "per-k8s-app-label")
 	GenAppsCmd.MarkFlagsMutuallyExclusive("label-value", "tag-value")
 	GenAppsCmd.MarkFlagsRequiredTogether("tag-key", "tag-value")
 	GenAppsCmd.MarkFlagsOneRequired("label-key", "tag-key", "contains", "log-label-key", "per-k8s-namespace", "per-k8s-app-label")

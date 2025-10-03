@@ -50,6 +50,7 @@ The `generate` command requires the following flags:
 
 * `--parent`: (Required) The scope of CAIS Asset Search. Must be of the format projects/{project} or folders/{folder}.
 * `--locations`: (Required) GCP location names to filter CAIS Asset Search (e.g. us-central1).
+* `--auto-detect`: (Options) Automatically detect applications using well known identifiers through labels and tags.
 * `--label-key`: (Optional) The GCP resource label key to filter resources from Cloud Asset Inventory.
 * `--label-value`: (Optional) The GCP resource label value to filter resources from Cloud Asset Inventory. Must be used with `label-key`
 * `--log-label-key`: (Optional) The GCP Cloud Logging label key to filter resources from Cloud Logging.
@@ -65,6 +66,17 @@ The `generate` command requires the following flags:
 * `--report-only`: (Optional) Generates a report of discovered assets without creating applications or registering services/workloads.
 
 #### Examples
+
+##### Automatically detect applications
+
+To create App Hub applications based on well known labels and tags:
+
+```shell
+docker run -it --rm ghcr.io/srinandan/apphub-app-creator:latest apps generate \
+    --project-id="my-gcp-project" \
+    --locations="us-central1" \
+    --auto-detect=true
+```
 
 ##### Generate applications based on label key
 
