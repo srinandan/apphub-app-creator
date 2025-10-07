@@ -53,7 +53,7 @@ var RootCmd = &cobra.Command{
 			clilog.Init(nil)
 		} else {
 			clilog.Init(&slog.HandlerOptions{
-				AddSource: true,
+				AddSource: false,
 				Level:     level,
 			})
 		}
