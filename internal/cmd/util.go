@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/spf13/pflag"
 )
@@ -59,4 +61,23 @@ func IsFolder(s string) bool {
 		return false
 	}
 	return true
+}
+
+func PrintGeneratedApplication(generatedApplications map[string][]string) {
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', tabwriter.Debug)
+	defer w.Flush()
+
+	fmt.Fprintln(w, "APP NAME\tDISCOVERED UUID\tAPP HUB TYPE\tRESOURCE URI")
+	fmt.Fprintln(w, "--------\t---------------\t-------------\t-----------")
+	for appName, generatedAppValues := range generatedApplications {
+		// Loop through the slice with the index (i) and value
+		fmt.Fprintf(w, "%s\t", appName)
+		for i, value := range generatedAppValues {
+			// Print the item followed by a tab character
+			fmt.Fprintf(w, "%s\t", value)
+			if (i+1)%3 == 0 {
+				fmt.Fprintf(w, "\n\t")
+			}
+		}
+	}
 }

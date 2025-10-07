@@ -18,8 +18,6 @@ import (
 	"fmt"
 	"internal/client"
 	"os"
-	"strings"
-	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 )
@@ -144,6 +142,10 @@ var GenAppsCmd = &cobra.Command{
 				}
 			}
 
+			if labelValue == "" {
+				labelValue = "*"
+			}
+
 			generatedApplications, err = client.GenerateAppsAssetInventory(parent,
 				managementProject,
 				labelKey,
@@ -160,15 +162,7 @@ var GenAppsCmd = &cobra.Command{
 			return err
 		}
 		if reportOnly {
-			w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', tabwriter.Debug)
-			defer w.Flush()
-
-			fmt.Fprintln(w, "APP NAME\tDISCOVERED UUID\tAPP HUB TYPE\tRESOURCE URI")
-			fmt.Fprintln(w, "--------\t---------------\t-------------\t-----------")
-			for appName, generatedAppValues := range generatedApplications {
-				row := strings.Join(generatedAppValues, "\t")
-				fmt.Fprintf(w, "%s\t%s\n", appName, row)
-			}
+			PrintGeneratedApplication(generatedApplications)
 		}
 		return nil
 	},
@@ -231,6 +225,5 @@ func init() {
 
 	GenAppsCmd.MarkFlagsMutuallyExclusive("auto-detect", "label-key", "tag-key", "contains", "log-label-key", "per-k8s-namespace", "per-k8s-app-label")
 	GenAppsCmd.MarkFlagsMutuallyExclusive("label-value", "tag-value")
-	GenAppsCmd.MarkFlagsRequiredTogether("tag-key", "tag-value")
-	GenAppsCmd.MarkFlagsOneRequired("label-key", "tag-key", "contains", "log-label-key", "per-k8s-namespace", "per-k8s-app-label")
+	GenAppsCmd.MarkFlagsOneRequired("auto-detect", "label-key", "tag-key", "contains", "log-label-key", "per-k8s-namespace", "per-k8s-app-label")
 }
