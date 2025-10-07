@@ -102,12 +102,12 @@ func searchAssets(parent, labelKey, labelValue, tagKey, tagValue, contains strin
 		if labelValue != "" {
 			queryParts = append(queryParts, fmt.Sprintf("labels.%s:%s", labelKey, labelValue))
 		} else {
-			queryParts = append(queryParts, fmt.Sprintf("labels.%s:*", labelKey))
+			queryParts = append(queryParts, fmt.Sprintf("labels:%s", labelKey))
 		}
 	} else if tagKey != "" {
 		if tagValue != "" {
 			queryParts = append(queryParts,
-				fmt.Sprintf("(tagKeys:%s AND tagValues:%s) OR (effectiveTagKeys:%s AND effectiveTagValues:%s)",
+				fmt.Sprintf("((tagKeys:%s AND tagValues:%s) OR (effectiveTagKeys:%s AND effectiveTagValues:%s))",
 					tagKey, tagValue, tagKey, tagValue))
 		} else {
 			queryParts = append(queryParts, fmt.Sprintf("(tagKeys:%s OR effectiveTagKeys:%s)", tagKey, tagKey))
