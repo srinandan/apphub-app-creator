@@ -24,6 +24,8 @@ import (
 
 	apphubpb "cloud.google.com/go/apphub/apiv1/apphubpb"
 	assetpb "cloud.google.com/go/asset/apiv1/assetpb"
+	resourcemanager "cloud.google.com/go/resourcemanager/apiv3"
+	resourcemanagerpb "cloud.google.com/go/resourcemanager/apiv3/resourcemanagerpb"
 	"google.golang.org/api/iterator"
 )
 
@@ -287,24 +289,24 @@ func GenerateFromAll(parent, managementProject string, locations []string, attri
 	generatedApplications := make(map[string][]string)
 
 	logger.Info("Running CAIS Search with location and Filters")
-	labeledAssets, err := searchAssetsFunc(parent, "*app*", "", "", "", "", locations, nil)
+	labeledAssets, err := searchAssetsFunc(parent, "app*", "", "", "", "", locations, nil)
 	if err != nil {
 		return generatedApplications, fmt.Errorf("error searching assets: %w", err)
 	}
 
-	logger.Info("Found assets that matched label *app* to process", "count", len(labeledAssets))
+	logger.Info("Found assets that matched label app* to process", "count", len(labeledAssets))
 
 	if len(labeledAssets) > 0 {
 		assets = append(assets, labeledAssets...)
 	}
 
 	logger.Info("Running CAIS Search with location and Filters")
-	taggedAssets, err := searchAssetsFunc(parent, "", "", "*app*", "", "", locations, nil)
+	taggedAssets, err := searchAssetsFunc(parent, "", "", "app*", "", "", locations, nil)
 	if err != nil {
 		return generatedApplications, fmt.Errorf("error searching assets: %w", err)
 	}
 
-	logger.Info("Found assets that matched label *app* to process", "count", len(taggedAssets))
+	logger.Info("Found assets that matched label app* to process", "count", len(taggedAssets))
 	if len(taggedAssets) > 0 {
 		assets = append(assets, taggedAssets...)
 	}
@@ -391,11 +393,11 @@ func processAssets(assets []*assetpb.ResourceSearchResult, apphubClient appHubCl
 		if discoveredName != "" {
 			appName = getAppNameFunc(asset)
 			// store in array to generate report
-			generatedApplications[appName] = []string{
+			generatedApplications[appName] = append(generatedApplications[appName], []string{
 				discoveredName[strings.LastIndex(discoveredName, "/")+1:],
 				appHubType,
 				asset.Name,
-			}
+			}...)
 
 			// perform the action is reportOnly is false
 			if !reportOnly {
@@ -421,9 +423,9 @@ func processAssets(assets []*assetpb.ResourceSearchResult, apphubClient appHubCl
 
 func getAppName(labelKey, tagKey, contains, labelValue, tagValue string, asset *assetpb.ResourceSearchResult) string {
 	logger := clilog.GetLogger()
-	if labelValue != "" {
+	if labelValue != "" && labelValue != "*" {
 		return labelValue
-	} else if tagValue != "" {
+	} else if tagValue != "" && tagValue != "*" {
 		return tagValue
 	} else if labelKey != "" {
 		return asset.GetLabels()[labelKey]
@@ -477,8 +479,6 @@ func createShortSHA(input string) string {
 }
 
 func getAppNameFromAsset(asset *assetpb.ResourceSearchResult) string {
-	project := strings.Split(asset.Name, "/")[2]
-	location := strings.Split(asset.Name, "/")[2]
 
 	for labelKey, labelValue := range asset.GetLabels() {
 		if strings.Contains(labelKey, "app") || labelKey == K8S_APP_LABEL {
@@ -499,5 +499,25 @@ func getAppNameFromAsset(asset *assetpb.ResourceSearchResult) string {
 			}
 		}
 	}
-	return fmt.Sprintf("%s-%s-%s", project, location, createShortSHA(project+location))
+	return getProjectID(asset.Project, context.Background())
+}
+
+func getProjectID(project string, ctx context.Context) string {
+	if strings.HasPrefix(project, "projects/") {
+		getProjectReq := &resourcemanagerpb.GetProjectRequest{
+			Name: project,
+		}
+		projectsClient, err := resourcemanager.NewProjectsClient(ctx)
+		if err != nil {
+			return "unknown"
+		}
+		defer projectsClient.Close()
+		getProjectResp, err := projectsClient.GetProject(ctx, getProjectReq)
+		if err != nil {
+			return "unknown"
+		}
+		return getProjectResp.ProjectId
+	} else {
+		return project
+	}
 }
