@@ -137,6 +137,38 @@ The `delete` command deletes one or more applications in a given set of location
 * `--locations`: (Required) GCP location names to delete applications from (e.g. us-central1).
 * `--management-project`: (Required) The project where App Hub is managed.
 
+## How do I verify the binary?
+
+All artifacts are signed by [cosign](https://github.com/sigstore/cosign). We recommend verifying any artifact before using them.
+
+You can use the following public key to verify any `apphub-app-creator` binary with:
+
+```sh
+cat cosign.pub
+-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEHHFDIsSzmNuYtsR1R0+nElNG3WuY
+asYLL8Ko8vw+CvCcGEV7BuI5vJykMBQWlW3XfDoGtPLQ4oxhuCaK21h07w==
+-----END PUBLIC KEY-----
+
+cosign verify-blob --key=cosign.pub --signature apphub-app-creator_<platform>_<arch>.zip.sig apphub-app-creator_<platform>_<arch>.zip
+```
+
+Where `platform` can be one of `Darwin`, `Linux` or `Windows` and arch (architecture) can be one of `arm64` or `x86_64`
+
+## How do I verify the container?
+
+All images are signed by [cosign](https://github.com/sigstore/cosign). We recommend verifying any container before using them.
+
+```sh
+cat cosign.pub
+-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEHHFDIsSzmNuYtsR1R0+nElNG3WuY
+asYLL8Ko8vw+CvCcGEV7BuI5vJykMBQWlW3XfDoGtPLQ4oxhuCaK21h07w==
+-----END PUBLIC KEY-----
+
+cosign verify --key=cosign.pub ghcr.io/srinandan/apphub-app-creator:latest
+```
+
 ## Contributing
 
 Please see [CONTRIBUTING.md](CONTRIBUTING.md) for information on how to contribute to this project.
