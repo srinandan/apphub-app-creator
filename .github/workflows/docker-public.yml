@@ -99,21 +99,21 @@ jobs:
             COMMIT=${{ env.COMMIT }}
 
       # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
-      # - name: Sign image with a key
-      #   run: |
-      #     echo "${{ env.COSIGN_PRIVATE_KEY }}" > /tmp/cosign.key
-      #     cosign sign --yes --key=/tmp/cosign.key --output-signature=/tmp/apphub-app-creator.sig ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build-and-push.outputs.digest }}
-      #   env:
-      #     COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
-      #     COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
-      #     DIGEST: ${{ steps.build-and-push.outputs.digest }}
+      - name: Sign image with a key
+        run: |
+          echo "${{ env.COSIGN_PRIVATE_KEY }}" > /tmp/cosign.key
+          cosign sign --yes --key=/tmp/cosign.key --output-signature=/tmp/apphub-app-creator.sig ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build-and-push.outputs.digest }}
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          DIGEST: ${{ steps.build-and-push.outputs.digest }}
 
-      # - name: Sign the image with GitHub OIDC Token
-      #   env:
-      #     DIGEST: ${{ steps.build-and-push.outputs.digest }}
-      #     TAGS: ${{ steps.meta.outputs.tags }}
-      #   run: |
-      #     cosign sign --yes ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build-and-push.outputs.digest }}
+      - name: Sign the image with GitHub OIDC Token
+        env:
+          DIGEST: ${{ steps.build-and-push.outputs.digest }}
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          cosign sign --yes ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build-and-push.outputs.digest }}
 
       - name: Generate SBOM
         uses: anchore/sbom-action@fc46e51fd3cb168ffb36c6d1915723c47db58abb #0.17.7

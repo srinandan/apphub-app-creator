@@ -59,10 +59,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # - name: Sign the binaries
-      #   run: cosign sign --yes --recursive ./dist/*
-      #   env:
-      #     COSIGN_EXPERIMENTAL: "true"
+      - name: Sign the binaries
+        run: cosign sign --yes --recursive ./dist/*
+        env:
+          COSIGN_EXPERIMENTAL: "true"
 
       - name: Upload assets
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
