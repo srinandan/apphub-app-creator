@@ -77,6 +77,7 @@ var GenAppsCmd = &cobra.Command{
 		attributes := GetStringParam(cmd.Flag("attributes"))
 		assetTypes := GetStringParam(cmd.Flag("asset-types"))
 		contains := GetStringParam(cmd.Flag("contains"))
+		appName := GetStringParam(cmd.Flag("app-name"))
 		perK8sNamespace, _ := cmd.Flags().GetBool("per-k8s-namespace")
 		perK8sAppLabel, _ := cmd.Flags().GetBool("per-k8s-app-label")
 		reportOnly, _ := cmd.Flags().GetBool("report-only")
@@ -129,6 +130,15 @@ var GenAppsCmd = &cobra.Command{
 				logLabelValue,
 				locations,
 				attributesData,
+				reportOnly)
+		} else if len(projectKeys) > 0 {
+			generatedApplications, err = client.GenerateFromProject(parent,
+				managementProject,
+				appName,
+				projectKeys,
+				locations,
+				attributesData,
+				nil,
 				reportOnly)
 		} else {
 			if assetTypes != "" {
@@ -189,11 +199,12 @@ var genAppsCmdExamples = []string{
 	`apphub-app-creator apps generate --parent projects/$project --management-project $mp --locations us-west1 --per-k8s-app-label=true`,
 	`apphub-app-creator apps generate --parent projects/$project --management-project $mp --locations us-west1 --label-key $label_key --report-only=true`,
 	`apphub-app-creator apps generate --parent projects/$project --management-project $mp --locations us-west1 --auto-detect=true --report-only=true`,
+	`apphub-app-creator apps generate --parent folders/$folder --management-project $mp --locations us-west1 --project-keys proj1 --project-keys proj2 --app-name my-app`,
 }
 
 func init() {
 	var labelKey, labelValue, tagKey, tagValue, contains, logLabelKey, logLabelValue string
-	var attributes, assetTypes string
+	var attributes, assetTypes, appName string
 	var perK8sNamespace, perK8sAppLabel, reportOnly, autoDetect bool
 
 	GenAppsCmd.Flags().StringVarP(&labelKey, "label-key", "",
@@ -210,6 +221,10 @@ func init() {
 		"", "Value of the Cloud Logging log entry label, which will also be the application name.")
 	GenAppsCmd.Flags().StringVarP(&contains, "contains", "",
 		"", "A string that asset resource names must contain. This string will also be the application name.")
+	GenAppsCmd.Flags().StringArrayVarP(&projectKeys, "project-keys", "",
+		[]string{}, "A list of project ids. Should be used in conjunction with parent=folders/{folder}")
+	GenAppsCmd.Flags().StringVarP(&appName, "app-name", "",
+		"", "A name for the App Hub Application. Should be used in conjunction with project-keys")
 	GenAppsCmd.Flags().StringVarP(&attributes, "attributes", "",
 		"", "Path to a json file containing App Hub attributes")
 	GenAppsCmd.Flags().BoolVarP(&perK8sNamespace, "per-k8s-namespace", "",
@@ -223,7 +238,8 @@ func init() {
 	GenAppsCmd.Flags().BoolVarP(&autoDetect, "auto-detect", "",
 		false, "Automatically detect applications using well known identifiers through labels and tags.")
 
-	GenAppsCmd.MarkFlagsMutuallyExclusive("auto-detect", "label-key", "tag-key", "contains", "log-label-key", "per-k8s-namespace", "per-k8s-app-label")
+	GenAppsCmd.MarkFlagsMutuallyExclusive("auto-detect", "label-key", "tag-key", "contains", "log-label-key", "per-k8s-namespace", "per-k8s-app-label", "project-keys")
 	GenAppsCmd.MarkFlagsMutuallyExclusive("label-value", "tag-value")
-	GenAppsCmd.MarkFlagsOneRequired("auto-detect", "label-key", "tag-key", "contains", "log-label-key", "per-k8s-namespace", "per-k8s-app-label")
+	GenAppsCmd.MarkFlagsRequiredTogether("project-keys", "app-name")
+	GenAppsCmd.MarkFlagsOneRequired("auto-detect", "label-key", "tag-key", "contains", "log-label-key", "per-k8s-namespace", "per-k8s-app-label", "project-keys")
 }
