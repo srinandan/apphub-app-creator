@@ -91,5 +91,3 @@ changelog:
 release:
   draft: true
   prerelease: auto
-  extra_files:
-    - glob: dist/*.sig
