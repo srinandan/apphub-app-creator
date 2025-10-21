@@ -20,14 +20,12 @@ import (
 	"encoding/hex"
 	"fmt"
 	"internal/clilog"
-	"slices"
 	"strings"
 
 	apphubpb "cloud.google.com/go/apphub/apiv1/apphubpb"
 	assetpb "cloud.google.com/go/asset/apiv1/assetpb"
 	resourcemanager "cloud.google.com/go/resourcemanager/apiv3"
 	resourcemanagerpb "cloud.google.com/go/resourcemanager/apiv3/resourcemanagerpb"
-	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/iterator"
 )
 
@@ -37,6 +35,52 @@ var (
 )
 
 var multiRegions = []string{"us", "eu", "global", "eur4", "nam3", "nam4", "nam6", "nam7", "nam8", "asia", "asia1"}
+
+// regions contains a list of region names extracted from the provided table.
+var regions = []string{
+	"africa-south1",
+	"asia-east1",
+	"asia-east2",
+	"asia-northeast1",
+	"asia-northeast2",
+	"asia-northeast3",
+	"asia-south1",
+	"asia-south2",
+	"asia-southeast1",
+	"asia-southeast2",
+	"australia-southeast1",
+	"australia-southeast2",
+	"europe-central2",
+	"europe-north1",
+	"europe-north2",
+	"europe-southwest1",
+	"europe-west1",
+	"europe-west10",
+	"europe-west12",
+	"europe-west2",
+	"europe-west3",
+	"europe-west4",
+	"europe-west6",
+	"europe-west8",
+	"europe-west9",
+	"me-central1",
+	"me-central2",
+	"me-west1",
+	"northamerica-northeast1",
+	"northamerica-northeast2",
+	"northamerica-south1",
+	"southamerica-east1",
+	"southamerica-west1",
+	"us-central1",
+	"us-east1",
+	"us-east4",
+	"us-east5",
+	"us-south1",
+	"us-west1",
+	"us-west2",
+	"us-west3",
+	"us-west4",
+}
 
 func GenerateAppsAssetInventory(parent, managementProject, labelKey, labelValue, tagKey, tagValue,
 	contains string, locations []string, attributesData, assetTypesData []byte, reportOnly bool,
@@ -429,8 +473,13 @@ func processAssets(assets []*assetpb.ResourceSearchResult, apphubClient appHubCl
 		// Identity if it is a service or workload
 		appHubType := identifyServiceOrWorkload(asset.AssetType)
 
-		if assetRegion, err = describeRegion(managementProject, asset.Location); err != nil {
+		if assetRegion, err = describeRegion(asset.Location); err != nil {
 			logger.Warn("Skipping asset from App Hub look up, unsupported region or zonal resource", "location", asset.Location)
+			continue
+		}
+
+		if assetRegion == "global" && appLocation != "global" {
+			logger.Warn("Skipping global asset since the app is regional")
 			continue
 		}
 
@@ -577,27 +626,19 @@ func getProjectID(project string, ctx context.Context) string {
 
 // describeRegion fetches details for a specific GCP region using the compute API.
 // It relies on Application Default Credentials (ADC) for authentication.
-func describeRegion(projectID, regionName string) (string, error) {
-	// Create a background context
-	ctx := context.Background()
-	logger := clilog.GetLogger()
+func describeRegion(regionName string) (string, error) {
 
-	if slices.Contains(multiRegions, regionName) {
-		return "global", nil
+	for _, m := range multiRegions {
+		if m == regionName {
+			return "global", nil
+		}
 	}
 
-	computeService, err := compute.NewService(ctx)
-	if err != nil {
-		return "", fmt.Errorf("failed to create compute service: %v", err)
+	for _, r := range regions {
+		if r == regionName {
+			return regionName, nil
+		}
 	}
 
-	logger.Info("Fetching details for", "region", regionName)
-	_, err = computeService.Regions.Get(projectID, regionName).Context(ctx).Do()
-	if err != nil {
-		return "", fmt.Errorf("failed to get region details: %v", err)
-	}
-
-	// The 'resp' object is a struct of type *compute.Region,
-	// which contains all the unmarshaled JSON data.
-	return regionName, nil
+	return "", fmt.Errorf("region is not supported or not a region")
 }
