@@ -28,7 +28,7 @@ var Cmd = &cobra.Command{
 
 var (
 	parent, managementProject string
-	locations                 []string
+	locations, projectKeys    []string
 )
 
 func init() {

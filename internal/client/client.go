@@ -281,7 +281,8 @@ func GenerateKubernetesApps(parent, managementProject string, locations []string
 	return processAssets(assets, apphubClient, managementProject, appLocation, attributesData, reportOnly, appNameFunc)
 }
 
-func GenerateFromAll(parent, managementProject string, locations []string, attributesData []byte, reportOnly bool) (map[string][]string, error) {
+func GenerateFromAll(parent, managementProject string, locations []string, attributesData []byte,
+	reportOnly bool) (map[string][]string, error) {
 
 	logger := clilog.GetLogger()
 	var appLocation string
@@ -343,6 +344,48 @@ func GenerateFromAll(parent, managementProject string, locations []string, attri
 	defer closeAppHubClient(apphubClient)
 
 	return processAssets(assets, apphubClient, managementProject, appLocation, attributesData, reportOnly, getAppNameFromAsset)
+}
+
+func GenerateFromProject(parent, managementProject, appName string, projectIds, locations []string, attributesData,
+	assetTypesData []byte, reportOnly bool) (map[string][]string, error) {
+
+	logger := clilog.GetLogger()
+	var appLocation string
+
+	var assets []*assetpb.ResourceSearchResult
+	generatedApplications := make(map[string][]string)
+
+	logger.Info("Running CAIS Search with location and Filters")
+	assets, err := searchProject(parent, projectIds, locations, assetTypesData)
+	if err != nil {
+		return generatedApplications, fmt.Errorf("error searching assets: %w", err)
+	}
+
+	if len(assets) == 0 {
+		logger.Warn("No assets found that matched the filter")
+		return generatedApplications, fmt.Errorf("no assets found that matched the filter")
+	}
+
+	logger.Info("Found assets to process", "count", len(assets))
+
+	apphubClient, err := getAppHubClientFunc()
+	if err != nil {
+		return generatedApplications, fmt.Errorf("error getting apphub client: %w", err)
+	}
+
+	defer closeAppHubClient(apphubClient)
+
+	if len(locations) > 1 {
+		appLocation = "global"
+	} else {
+		appLocation = locations[0]
+	}
+
+	appNameFunc := func(asset *assetpb.ResourceSearchResult) string {
+		return appName
+	}
+
+	return processAssets(assets, apphubClient, managementProject, appLocation, attributesData, reportOnly, appNameFunc)
 }
 
 func DeleteApp(managementProject, name string, locations []string) error {
