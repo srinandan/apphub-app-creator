@@ -20,12 +20,14 @@ import (
 	"encoding/hex"
 	"fmt"
 	"internal/clilog"
+	"slices"
 	"strings"
 
 	apphubpb "cloud.google.com/go/apphub/apiv1/apphubpb"
 	assetpb "cloud.google.com/go/asset/apiv1/assetpb"
 	resourcemanager "cloud.google.com/go/resourcemanager/apiv3"
 	resourcemanagerpb "cloud.google.com/go/resourcemanager/apiv3/resourcemanagerpb"
+	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/iterator"
 )
 
@@ -33,6 +35,8 @@ var (
 	searchAssetsFunc    = searchAssets
 	getAppHubClientFunc = getAppHubClient
 )
+
+var multiRegions = []string{"us", "eu", "global", "eur4", "nam3", "nam4", "nam6", "nam7", "nam8", "asia", "asia1"}
 
 func GenerateAppsAssetInventory(parent, managementProject, labelKey, labelValue, tagKey, tagValue,
 	contains string, locations []string, attributesData, assetTypesData []byte, reportOnly bool,
@@ -414,6 +418,7 @@ func processAssets(assets []*assetpb.ResourceSearchResult, apphubClient appHubCl
 	logger := clilog.GetLogger()
 	generatedApplications := make(map[string][]string)
 	var err error
+	var assetRegion string
 
 	// For each asset returned
 	for _, asset := range assets {
@@ -424,9 +429,14 @@ func processAssets(assets []*assetpb.ResourceSearchResult, apphubClient appHubCl
 		// Identity if it is a service or workload
 		appHubType := identifyServiceOrWorkload(asset.AssetType)
 
+		if assetRegion, err = describeRegion(managementProject, asset.Location); err != nil {
+			logger.Warn("Skipping asset from App Hub look up, unsupported region or zonal resource", "location", asset.Location)
+			continue
+		}
+
 		// Lookup App Hub to get the discovered name
 		if discoveredName, err = lookupDiscoveredServiceOrWorkload(apphubClient, managementProject,
-			asset.Location,
+			assetRegion,
 			asset.Name,
 			appHubType,
 			asset); err != nil {
@@ -563,4 +573,31 @@ func getProjectID(project string, ctx context.Context) string {
 	} else {
 		return project
 	}
+}
+
+// describeRegion fetches details for a specific GCP region using the compute API.
+// It relies on Application Default Credentials (ADC) for authentication.
+func describeRegion(projectID, regionName string) (string, error) {
+	// Create a background context
+	ctx := context.Background()
+	logger := clilog.GetLogger()
+
+	if slices.Contains(multiRegions, regionName) {
+		return "global", nil
+	}
+
+	computeService, err := compute.NewService(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to create compute service: %v", err)
+	}
+
+	logger.Info("Fetching details for", "region", regionName)
+	_, err = computeService.Regions.Get(projectID, regionName).Context(ctx).Do()
+	if err != nil {
+		return "", fmt.Errorf("failed to get region details: %v", err)
+	}
+
+	// The 'resp' object is a struct of type *compute.Region,
+	// which contains all the unmarshaled JSON data.
+	return regionName, nil
 }
