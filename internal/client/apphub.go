@@ -115,6 +115,7 @@ func getOrCreateAppHubApplication(apiclient appHubClient, projectID, location, a
 	// Construct the full resource name for the Application
 	// Name format: projects/{project}/locations/{location}/applications/{application_id}
 	applicationName := fmt.Sprintf("projects/%s/locations/%s/applications/%s", projectID, location, appID)
+	logger.Info("Using application name", "application", applicationName)
 	parent := fmt.Sprintf("projects/%s/locations/%s", projectID, location)
 
 	// Check if the Application already exists (GET call) ---

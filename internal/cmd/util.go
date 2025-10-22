@@ -67,9 +67,9 @@ func PrintGeneratedApplication(generatedApplications map[string][]string) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', tabwriter.Debug)
 	defer w.Flush()
 
-	fmt.Fprintln(w, "APP NAME\tDISCOVERED UUID\tAPP HUB TYPE\tRESOURCE URI")
-	fmt.Fprintln(w, "--------\t---------------\t-------------\t-----------")
 	for appName, generatedAppValues := range generatedApplications {
+		fmt.Fprintln(w, "APP NAME\tDISCOVERED UUID\tAPP HUB TYPE\tRESOURCE URI")
+		fmt.Fprintln(w, "--------\t---------------\t-------------\t-----------")
 		// Loop through the slice with the index (i) and value
 		fmt.Fprintf(w, "%s\t", appName)
 		for i, value := range generatedAppValues {
@@ -79,5 +79,8 @@ func PrintGeneratedApplication(generatedApplications map[string][]string) {
 				fmt.Fprintf(w, "\n\t")
 			}
 		}
+		fmt.Fprintln(w, "")
+		//fmt.Fprintln(w, "APP NAME\tDISCOVERED UUID\tAPP HUB TYPE\tRESOURCE URI")
+		//fmt.Fprintln(w, "--------\t---------------\t-------------\t-----------")
 	}
 }
