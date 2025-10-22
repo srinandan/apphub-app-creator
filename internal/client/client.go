@@ -20,6 +20,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"internal/clilog"
+	"regexp"
 	"strings"
 
 	apphubpb "cloud.google.com/go/apphub/apiv1/apphubpb"
@@ -583,20 +584,20 @@ func createShortSHA(input string) string {
 func getAppNameFromAsset(asset *assetpb.ResourceSearchResult) string {
 
 	for labelKey, labelValue := range asset.GetLabels() {
-		if strings.Contains(labelKey, "app") || labelKey == K8S_APP_LABEL {
+		if (strings.Contains(labelKey, "app") || labelKey == K8S_APP_LABEL) && isValidAppName(labelValue) {
 			return labelValue
 		}
 	}
 	for _, tag := range asset.GetTags() {
 		lastElement := tag.GetTagKey()[strings.LastIndex(tag.GetTagKey(), "/")+1:]
-		if strings.Contains(lastElement, "app") {
+		if strings.Contains(lastElement, "app") && isValidAppName(tag.GetTagValue()[strings.LastIndex(tag.GetTagValue(), "/")+1:]) {
 			return tag.GetTagValue()[strings.LastIndex(tag.GetTagValue(), "/")+1:]
 		}
 	}
 	for _, effectiveTagDetails := range asset.GetEffectiveTags() {
 		for _, tag := range effectiveTagDetails.GetEffectiveTags() {
 			lastElement := tag.GetTagKey()[strings.LastIndex(tag.GetTagKey(), "/")+1:]
-			if strings.Contains(lastElement, "app") {
+			if strings.Contains(lastElement, "app") && isValidAppName(tag.GetTagValue()[strings.LastIndex(tag.GetTagValue(), "/")+1:]) {
 				return tag.GetTagValue()[strings.LastIndex(tag.GetTagValue(), "/")+1:]
 			}
 		}
@@ -641,4 +642,10 @@ func describeRegion(regionName string) (string, error) {
 	}
 
 	return "", fmt.Errorf("region is not supported or not a region")
+}
+
+func isValidAppName(s string) bool {
+	pattern := `^[a-z]`
+	isValid, _ := regexp.MatchString(pattern, s)
+	return isValid
 }
