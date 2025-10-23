@@ -320,7 +320,7 @@ func searchProject(parent string, projectIds, locations []string, assetTypesData
 		}
 		queryParts = append(queryParts, fmt.Sprintf("(%s)", strings.Join(p, " OR ")))
 	} else {
-		queryParts = []string{fmt.Sprintf("project=projects/%s", projectIds[0])}
+		queryParts = append(queryParts, fmt.Sprintf("project=projects/%s", projectIds[0]))
 	}
 
 	fullQuery := strings.Join(queryParts, " AND ")
