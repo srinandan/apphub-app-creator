@@ -35,6 +35,7 @@ var INCLUDED_ASSETS = []string{
 	"apps.k8s.io/DaemonSet",
 	"apps.k8s.io/StatefulSet",
 	"compute.googleapis.com/InstanceGroup",
+	"aiplatform.googleapis.com/ReasoningEngine",
 	// networking
 	"compute.googleapis.com/ForwardingRule",
 	"compute.googleapis.com/BackendService",
@@ -370,6 +371,7 @@ func identifyServiceOrWorkload(assetType string) string {
 		"apps.k8s.io/StatefulSet",
 		"run.googleapis.com/Job",
 		"compute.googleapis.com/InstanceGroup",
+		"aiplatform.googleapis.com/ReasoningEngine",
 	}
 	if slices.Contains(WORKLOADS, assetType) {
 		return "discoveredWorkload"

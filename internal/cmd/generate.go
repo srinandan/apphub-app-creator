@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"internal/client"
 	"os"
+	"regexp"
 
 	"github.com/spf13/cobra"
 )
@@ -34,6 +35,7 @@ var GenAppsCmd = &cobra.Command{
 		logLabelValue := GetStringParam(cmd.Flag("log-label-value"))
 		tagKey := GetStringParam(cmd.Flag("tag-key"))
 		tagValue := GetStringParam(cmd.Flag("tag-value"))
+		appName := GetStringParam(cmd.Flag("app-name"))
 
 		if parent == "" {
 			return fmt.Errorf("parent is a required field")
@@ -61,6 +63,10 @@ var GenAppsCmd = &cobra.Command{
 		}
 		if IsFolder(parent) && logLabelKey != "" {
 			return fmt.Errorf("log-label-key is not allowed for folders")
+		}
+
+		if !isValidAppName(appName) {
+			return fmt.Errorf("app-name must start with a lowercase letter")
 		}
 
 		return
@@ -188,7 +194,9 @@ Create one App Hub application per app.kubernetes.io/name label value: ` + genAp
 
 Generate a report of discovered assets: ` + genAppsCmdExamples[5] + `
 
-Automatically detect applications based on well known labels and tags: ` + genAppsCmdExamples[6],
+Automatically detect applications based on well known labels and tags: ` + genAppsCmdExamples[6] + `
+
+Generate an application per project or list of projects: ` + genAppsCmdExamples[7],
 }
 
 var genAppsCmdExamples = []string{
@@ -200,6 +208,12 @@ var genAppsCmdExamples = []string{
 	`apphub-app-creator apps generate --parent projects/$project --management-project $mp --locations us-west1 --label-key $label_key --report-only=true`,
 	`apphub-app-creator apps generate --parent projects/$project --management-project $mp --locations us-west1 --auto-detect=true --report-only=true`,
 	`apphub-app-creator apps generate --parent folders/$folder --management-project $mp --locations us-west1 --project-keys proj1 --project-keys proj2 --app-name my-app`,
+}
+
+func isValidAppName(s string) bool {
+	pattern := `^[a-z]`
+	isValid, _ := regexp.MatchString(pattern, s)
+	return isValid
 }
 
 func init() {
