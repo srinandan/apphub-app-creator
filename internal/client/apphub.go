@@ -444,7 +444,7 @@ func fixResourceURI(resourceURI string, asset *assetpb.ResourceSearchResult) str
 	return resourceURI
 }
 
-// truncateName truncates the displan name to a maximum of 63 runes (characters).
+// truncateName truncates the display name to a maximum of 63 runes (characters).
 func truncateName(s string) string {
 	const maxLen = 63
 
