@@ -215,7 +215,7 @@ func registerServiceWithApplication(apiclient appHubClient, projectID, location,
 			Service: &apphubpb.Service{
 				// This links the new App Hub Service resource to the existing Discovered Service
 				DiscoveredService: discoveredName,
-				DisplayName:       displayName,
+				DisplayName:       truncateName(displayName),
 				Attributes:        attr,
 			},
 		}
@@ -253,7 +253,7 @@ func registerServiceWithApplication(apiclient appHubClient, projectID, location,
 			Workload: &apphubpb.Workload{
 				// This links the new App Hub Service resource to the existing Discovered Workload
 				DiscoveredWorkload: discoveredName,
-				DisplayName:        displayName,
+				DisplayName:        truncateName(displayName),
 				Attributes:         attr,
 			},
 		}
@@ -442,4 +442,21 @@ func fixResourceURI(resourceURI string, asset *assetpb.ResourceSearchResult) str
 		resourceURI = re.ReplaceAllString(resourceURI, fmt.Sprintf("${1}%s${3}", projectNumber))
 	}
 	return resourceURI
+}
+
+// truncateName truncates the display name to a maximum of 63 runes (characters).
+func truncateName(s string) string {
+	const maxLen = 63
+
+	// Convert the string to a slice of runes
+	runes := []rune(s)
+
+	// If the number of runes is greater than maxLen
+	if len(runes) > maxLen {
+		// Slice the rune slice and convert it back to a string
+		return string(runes[:maxLen])
+	}
+
+	// Otherwise, return the original string
+	return s
 }
