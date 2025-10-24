@@ -24,6 +24,7 @@ import (
 	apphub "cloud.google.com/go/apphub/apiv1"
 	apphubpb "cloud.google.com/go/apphub/apiv1/apphubpb"
 	assetpb "cloud.google.com/go/asset/apiv1/assetpb"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -197,7 +198,9 @@ func registerServiceWithApplication(apiclient appHubClient, projectID, location,
 	if len(parts) < 6 {
 		return fmt.Errorf("invalid discovered name format: %s", discoveredName)
 	}
-	id := parts[5] // The ID is the 6th element in the path array (0-indexed)
+
+	// The ID is the 6th element in the path array (0-indexed)
+	id := getServiceWorkloadId(parts[5], truncateName(displayName))
 
 	// Construct the CreateService Request
 	logger.Info("Registering into Application", appHubType, id, "app-name", appID)
@@ -288,11 +291,13 @@ func registerServiceWithApplication(apiclient appHubClient, projectID, location,
 }
 
 func removeAllServices(apiclient appHubClient, projectID, location, appID string) error {
-	ctx := context.Background()
 
+	const maxConcurrentDeletions = 4
+
+	// Use context.Background() as the base context
+	ctx := context.Background()
 	logger := clilog.GetLogger()
 
-	// Determine the Service Parent (The Application Path)
 	// Parent format: projects/{project}/locations/{location}/applications/{application_id}
 	parent := fmt.Sprintf("projects/%s/locations/%s/applications/%s", projectID, location, appID)
 
@@ -300,8 +305,15 @@ func removeAllServices(apiclient appHubClient, projectID, location, appID string
 		Parent: parent,
 	}
 
+	g, ctx := errgroup.WithContext(ctx)
+
+	// Set the concurrency limit
+	g.SetLimit(maxConcurrentDeletions)
+
 	// Call the ListServices API
 	listServices := apiclient.ListServices(ctx, reqServices)
+
+	logger.Info("Starting service deletion...", "maxConcurrency", maxConcurrentDeletions)
 
 	for {
 		service, err := listServices.Next()
@@ -312,29 +324,49 @@ func removeAllServices(apiclient appHubClient, projectID, location, appID string
 			return fmt.Errorf("failed to list services: %w", err)
 		}
 
-		// Construct the DeleteService Request
-		reqDeleteService := &apphubpb.DeleteServiceRequest{
-			Name: service.GetName(),
-		}
-		// Call the DeleteService API (LRO)
-		op, err := apiclient.DeleteService(ctx, reqDeleteService)
-		if err != nil {
-			return fmt.Errorf("failed to start service deletion: %w", err)
-		}
+		serviceCopy := service
 
-		op.Wait(ctx)
-		logger.Info("Service successfully deleted.", "service", service.Name)
+		g.Go(func() error {
+			logger.Info("Starting deletion...", "service", serviceCopy.Name)
+
+			// Construct the DeleteService Request
+			reqDeleteService := &apphubpb.DeleteServiceRequest{
+				Name: serviceCopy.GetName(),
+			}
+
+			// Call the DeleteService API (LRO)
+			op, err := apiclient.DeleteService(ctx, reqDeleteService)
+			if err != nil {
+				return fmt.Errorf("failed to start service deletion for %s: %w", serviceCopy.Name, err)
+			}
+
+			// Wait for the operation to complete
+			if err := op.Wait(ctx); err != nil {
+				return fmt.Errorf("wait for service deletion failed for %s: %w", serviceCopy.Name, err)
+			}
+
+			logger.Info("Service successfully deleted.", "service", serviceCopy.Name)
+			return nil
+		})
 	}
 
+	// Wait for all goroutines to finish
+	if err := g.Wait(); err != nil {
+		return err
+	}
+
+	logger.Info("All services successfully deleted.")
 	return nil
 }
 
 func removeAllWorkloads(apiclient appHubClient, projectID, location, appID string) error {
-	ctx := context.Background()
 
+	const maxConcurrentDeletions = 4
+
+	// Use context.Background() as the base context
+	ctx := context.Background()
 	logger := clilog.GetLogger()
 
-	// Determine the Service Parent (The Application Path)
 	// Parent format: projects/{project}/locations/{location}/applications/{application_id}
 	parent := fmt.Sprintf("projects/%s/locations/%s/applications/%s", projectID, location, appID)
 
@@ -342,8 +374,15 @@ func removeAllWorkloads(apiclient appHubClient, projectID, location, appID strin
 		Parent: parent,
 	}
 
+	g, ctx := errgroup.WithContext(ctx)
+
+	// Set the concurrency limit
+	g.SetLimit(maxConcurrentDeletions)
+
 	// Call the ListWorkloads API
 	listWorkloads := apiclient.ListWorkloads(ctx, reqWorkloads)
+
+	logger.Info("Starting workloads deletion...", "maxConcurrency", maxConcurrentDeletions)
 
 	for {
 		workload, err := listWorkloads.Next()
@@ -354,20 +393,37 @@ func removeAllWorkloads(apiclient appHubClient, projectID, location, appID strin
 			return fmt.Errorf("failed to list workloads: %w", err)
 		}
 
-		// Construct the DeleteWorkload Request
-		reqDeleteWorkload := &apphubpb.DeleteWorkloadRequest{
-			Name: workload.GetName(),
-		}
-		// Call the DeleteWorkload API (LRO)
-		op, err := apiclient.DeleteWorkload(ctx, reqDeleteWorkload)
-		if err != nil {
-			return fmt.Errorf("failed to start workload deletion: %w", err)
-		}
+		workloadCopy := workload
 
-		op.Wait(ctx)
-		logger.Info("Successfully deleted workload", "workload", workload.Name)
+		g.Go(func() error {
+			logger.Info("Starting deletion...", "workload", workloadCopy.Name)
+
+			// Construct the DeleteWorkload Request
+			reqDeleteWorkload := &apphubpb.DeleteWorkloadRequest{
+				Name: workloadCopy.GetName(),
+			}
+
+			// Call the DeleteWorkload API (LRO)
+			op, err := apiclient.DeleteWorkload(ctx, reqDeleteWorkload)
+			if err != nil {
+				return fmt.Errorf("failed to start workload deletion: %w", err)
+			}
+
+			// Wait for the operation to complete
+			if err := op.Wait(ctx); err != nil {
+				return fmt.Errorf("wait for workload deletion failed for %s: %w", workloadCopy.Name, err)
+			}
+
+			logger.Info("Workload successfully deleted.", "service", workloadCopy.Name)
+			return nil
+		})
+	}
+	// Wait for all goroutines to finish
+	if err := g.Wait(); err != nil {
+		return err
 	}
 
+	logger.Info("All workloads successfully deleted.")
 	return nil
 }
 
@@ -459,4 +515,35 @@ func truncateName(s string) string {
 
 	// Otherwise, return the original string
 	return s
+}
+
+func getServiceWorkloadId(id string, assetName string) string {
+
+	// set a lower max laenth to allow to portion of id
+	const maxLen = 50
+	var firstPart, secondPart string
+
+	// Find the index of the last separator
+	index := strings.LastIndex(id, "-")
+
+	// If the separator is not found, return the original string.
+	if index == -1 {
+		return id
+	}
+
+	secondPart = id[index+1:]
+
+	// Convert the string to a slice of runes
+	runes := []rune(assetName)
+
+	// If the number of runes is greater than maxLen
+	if len(runes) > maxLen {
+		// Slice the rune slice and convert it back to a string
+		firstPart = string(runes[:maxLen])
+	} else {
+		// Otherwise, return the original string
+		firstPart = assetName
+	}
+
+	return strings.ReplaceAll(firstPart, "_", "-") + "-" + secondPart
 }
