@@ -65,10 +65,13 @@ var GenAppsCmd = &cobra.Command{
 			return fmt.Errorf("log-label-key is not allowed for folders")
 		}
 
-		if !isValidAppName(appName) {
+		if appName != "" && !isValidAppName(appName) {
 			return fmt.Errorf("app-name must start with a lowercase letter")
 		}
 
+		if len(projectKeys) > 1 && !IsFolder(parent) {
+			return fmt.Errorf("multiple project-keys is only allowed when parent=folders/{folder}")
+		}
 		return
 	},
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
