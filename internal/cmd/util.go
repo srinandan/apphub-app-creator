@@ -80,7 +80,7 @@ func PrintGeneratedApplication(generatedApplications map[string][]string) {
 			}
 		}
 		fmt.Fprintln(w, "")
-		//fmt.Fprintln(w, "APP NAME\tDISCOVERED UUID\tAPP HUB TYPE\tRESOURCE URI")
-		//fmt.Fprintln(w, "--------\t---------------\t-------------\t-----------")
+		// fmt.Fprintln(w, "APP NAME\tDISCOVERED UUID\tAPP HUB TYPE\tRESOURCE URI")
+		// fmt.Fprintln(w, "--------\t---------------\t-------------\t-----------")
 	}
 }

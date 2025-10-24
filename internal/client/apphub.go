@@ -291,7 +291,6 @@ func registerServiceWithApplication(apiclient appHubClient, projectID, location,
 }
 
 func removeAllServices(apiclient appHubClient, projectID, location, appID string) error {
-
 	const maxConcurrentDeletions = 4
 
 	// Use context.Background() as the base context
@@ -360,7 +359,6 @@ func removeAllServices(apiclient appHubClient, projectID, location, appID string
 }
 
 func removeAllWorkloads(apiclient appHubClient, projectID, location, appID string) error {
-
 	const maxConcurrentDeletions = 4
 
 	// Use context.Background() as the base context
@@ -518,7 +516,6 @@ func truncateName(s string) string {
 }
 
 func getServiceWorkloadId(id string, assetName string) string {
-
 	// set a lower max laenth to allow to portion of id
 	const maxLen = 50
 	var firstPart, secondPart string

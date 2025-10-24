@@ -86,7 +86,6 @@ var regions = []string{
 func GenerateAppsAssetInventory(parent, managementProject, labelKey, labelValue, tagKey, tagValue,
 	contains string, locations []string, attributesData, assetTypesData []byte, reportOnly bool,
 ) (map[string][]string, error) {
-
 	logger := clilog.GetLogger()
 	var appLocation string
 	generatedApplications := make(map[string][]string)
@@ -127,7 +126,6 @@ func GenerateAppsAssetInventory(parent, managementProject, labelKey, labelValue,
 func GenerateAppsCloudLogging(projectID, managementProject, logLabelKey, logLabelValue string,
 	locations []string, attributesData []byte, reportOnly bool,
 ) (map[string][]string, error) {
-
 	logger := clilog.GetLogger()
 	var appLocation string
 	generatedApplications := make(map[string][]string)
@@ -252,8 +250,8 @@ func DeleteAllApps(managementProject string, locations []string) error {
 }
 
 func GenerateAppsPerNamespace(parent, managementProject string, locations []string,
-	attributesData []byte, reportOnly bool) (map[string][]string, error) {
-
+	attributesData []byte, reportOnly bool,
+) (map[string][]string, error) {
 	logger := clilog.GetLogger()
 	var appLocation string
 	generatedApplications := make(map[string][]string)
@@ -292,7 +290,8 @@ func GenerateAppsPerNamespace(parent, managementProject string, locations []stri
 }
 
 func GenerateKubernetesApps(parent, managementProject string, locations []string, attributesData []byte,
-	reportOnly bool) (map[string][]string, error) {
+	reportOnly bool,
+) (map[string][]string, error) {
 	logger := clilog.GetLogger()
 	var appLocation string
 	generatedApplications := make(map[string][]string)
@@ -331,8 +330,8 @@ func GenerateKubernetesApps(parent, managementProject string, locations []string
 }
 
 func GenerateFromAll(parent, managementProject string, locations []string, attributesData []byte,
-	reportOnly bool) (map[string][]string, error) {
-
+	reportOnly bool,
+) (map[string][]string, error) {
 	logger := clilog.GetLogger()
 	var appLocation string
 	var assets []*assetpb.ResourceSearchResult
@@ -396,8 +395,8 @@ func GenerateFromAll(parent, managementProject string, locations []string, attri
 }
 
 func GenerateFromProject(parent, managementProject, appName string, projectIds, locations []string, attributesData,
-	assetTypesData []byte, reportOnly bool) (map[string][]string, error) {
-
+	assetTypesData []byte, reportOnly bool,
+) (map[string][]string, error) {
 	logger := clilog.GetLogger()
 	var appLocation string
 
@@ -458,8 +457,8 @@ func DeleteApp(managementProject, name string, locations []string) error {
 
 func processAssets(assets []*assetpb.ResourceSearchResult, apphubClient appHubClient, managementProject, appLocation string,
 	attributesData []byte, reportOnly bool,
-	getAppNameFunc func(asset *assetpb.ResourceSearchResult) string) (map[string][]string, error) {
-
+	getAppNameFunc func(asset *assetpb.ResourceSearchResult) string,
+) (map[string][]string, error) {
 	logger := clilog.GetLogger()
 	generatedApplications := make(map[string][]string)
 	var err error
@@ -582,7 +581,6 @@ func createShortSHA(input string) string {
 }
 
 func getAppNameFromAsset(asset *assetpb.ResourceSearchResult) string {
-
 	for labelKey, labelValue := range asset.GetLabels() {
 		if (strings.Contains(labelKey, "app") || labelKey == K8S_APP_LABEL) && isValidAppName(labelValue) {
 			return labelValue
@@ -628,7 +626,6 @@ func getProjectID(project string, ctx context.Context) string {
 // describeRegion fetches details for a specific GCP region using the compute API.
 // It relies on Application Default Credentials (ADC) for authentication.
 func describeRegion(regionName string) (string, error) {
-
 	for _, m := range multiRegions {
 		if m == regionName {
 			return "global", nil

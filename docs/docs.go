@@ -16,12 +16,11 @@ package main
 
 import (
 	"fmt"
+	"internal/cmd"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"internal/cmd"
 
 	"github.com/spf13/cobra/doc"
 )
