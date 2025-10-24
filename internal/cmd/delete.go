@@ -64,6 +64,10 @@ var delAppsCmdExamples = []string{
 	`apphub-app-creator apps delete --name $name --management-project $project --locations us-west1`,
 }
 
+func GetDelAppExample(i int) string {
+	return delAppsCmdExamples[i]
+}
+
 func init() {
 	var name string
 
