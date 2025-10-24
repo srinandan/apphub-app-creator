@@ -213,6 +213,10 @@ var genAppsCmdExamples = []string{
 	`apphub-app-creator apps generate --parent folders/$folder --management-project $mp --locations us-west1 --project-keys proj1 --project-keys proj2 --app-name my-app`,
 }
 
+func GetGenAppExample(i int) string {
+	return genAppsCmdExamples[i]
+}
+
 func isValidAppName(s string) bool {
 	pattern := `^[a-z]`
 	isValid, _ := regexp.MatchString(pattern, s)

@@ -46,24 +46,7 @@ The primary command is `generate`, which creates App Hub applications based on a
 
 ### Generate Command
 
-The `generate` command requires the following flags:
-
-* `--parent`: (Required) The scope of CAIS Asset Search. Must be of the format projects/{project} or folders/{folder}.
-* `--locations`: (Required) GCP location names to filter CAIS Asset Search (e.g. us-central1).
-* `--auto-detect`: (Options) Automatically detect applications using well known identifiers through labels and tags.
-* `--label-key`: (Optional) The GCP resource label key to filter resources from Cloud Asset Inventory.
-* `--label-value`: (Optional) The GCP resource label value to filter resources from Cloud Asset Inventory. Must be used with `label-key`
-* `--log-label-key`: (Optional) The GCP Cloud Logging label key to filter resources from Cloud Logging.
-* `--log-label-value`: (Optional) The GCP Cloud Logging label value to filter resources from Cloud Logging. Must be used with `log-label-key`
-* `--tag-key`: (Optional) The GCP resource tag key to filter resources from Cloud Asset Inventory.
-* `--tag-value`: (Optional) The GCP resource tag value to filter resources from Cloud Asset Inventory. Must be used with `tag-key`
-* `--contains`: (Optional) GCP Resources whose name contains the string.
-* `--per-k8s-namespace`: (Optional) Create one App Hub application per discovered Kubernetes namespace.
-* `--per-k8s-app-label`: (Optional) Create one App Hub application per app.kubernetes.io/name label value.
-* `--management-project`: (Optional) App Hub Management Project Id. If parent is set to projects/{project}, then management-project defaults to the same.
-* `--attributes-file`: (Optional) Path to a JSON file containing App Hub application attributes.
-* `--assets-file`: (Optional) Path to a CSV file containing a list of asset types to search in CAIS.
-* `--report-only`: (Optional) Generates a report of discovered assets without creating applications or registering services/workloads.
+Please see the [documentation](./docs/apphub-app-creator.md) for all available options.
 
 #### Examples
 
