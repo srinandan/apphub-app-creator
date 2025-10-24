@@ -185,9 +185,12 @@ func searchKubernetes(parent string, locations []string) ([]*assetpb.ResourceSea
 	}
 
 	// exclude kubernetes system namespaces
+	var gkeExlNs []string
 	for _, ns := range GKE_EXCLUSION_NAMESPACES {
-		queryParts = append(queryParts, fmt.Sprintf("NOT parentFullResourceName : \"%s\"", ns))
+		gkeExlNs = append(gkeExlNs, fmt.Sprintf("parentFullResourceName : \"%s\"", ns))
 	}
+
+	queryParts = append(queryParts, fmt.Sprintf("NOT (%s)", strings.Join(gkeExlNs, " OR ")))
 
 	fullQuery := strings.Join(queryParts, " ")
 
@@ -250,9 +253,12 @@ func searchKubernetesApps(parent string, locations []string) ([]*assetpb.Resourc
 	queryParts = append(queryParts, fmt.Sprintf("labels.\"%s\":*", K8S_APP_LABEL))
 
 	// exclude kubernetes system namespaces
+	var gkeExlNs []string
 	for _, ns := range GKE_EXCLUSION_NAMESPACES {
-		queryParts = append(queryParts, fmt.Sprintf("NOT parentFullResourceName : \"%s\"", ns))
+		gkeExlNs = append(gkeExlNs, fmt.Sprintf("parentFullResourceName : \"%s\"", ns))
 	}
+
+	queryParts = append(queryParts, fmt.Sprintf("NOT (%s)", strings.Join(gkeExlNs, " OR ")))
 
 	fullQuery := strings.Join(queryParts, " AND ")
 
@@ -303,27 +309,32 @@ func searchProject(parent string, projectIds, locations []string, assetTypesData
 
 	// Build the full search query.
 	if len(locations) > 1 {
-		queryParts = append(queryParts, fmt.Sprintf("location:(%s)", strings.Join(locations, " OR ")))
+		var loc []string
+		for _, l := range locations {
+			loc = append(loc, fmt.Sprintf("location:%s", l))
+		}
+		queryParts = append(queryParts, fmt.Sprintf("(%s)", strings.Join(loc, " OR ")))
 	} else {
 		queryParts = []string{fmt.Sprintf("location:%s", locations[0])}
 	}
 
 	// exclude kubernetes system namespaces
+	var gkeExlNs []string
 	for _, ns := range GKE_EXCLUSION_NAMESPACES {
-		queryParts = append(queryParts, fmt.Sprintf("NOT parentFullResourceName : \"%s\"", ns))
+		gkeExlNs = append(gkeExlNs, fmt.Sprintf("parentFullResourceName : \"%s\"", ns))
 	}
+
+	queryParts = append(queryParts, fmt.Sprintf("NOT (%s)", strings.Join(gkeExlNs, " OR ")))
 
 	if len(projectIds) > 1 {
 		var p []string
 		for _, i := range projectIds {
 			p = append(p, fmt.Sprintf("projects/%s", i))
 		}
-		queryParts = append(queryParts, fmt.Sprintf("(%s)", strings.Join(p, " OR ")))
-	} else {
-		queryParts = append(queryParts, fmt.Sprintf("project=projects/%s", projectIds[0]))
+		queryParts = append(queryParts, fmt.Sprintf("AND (%s)", strings.Join(p, " OR ")))
 	}
 
-	fullQuery := strings.Join(queryParts, " AND ")
+	fullQuery := strings.Join(queryParts, " ")
 
 	logger.Info("Searching scope with query", "scope", parent, "query", fullQuery)
 
