@@ -92,6 +92,7 @@ func init() {
 		false, "Disable check for newer versions")
 
 	RootCmd.AddCommand(Cmd)
+	RootCmd.AddCommand(ServerCmd)
 }
 
 // GetRootCmd returns the root of the cobra command-tree.
