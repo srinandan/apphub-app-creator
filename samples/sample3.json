@@ -1,0 +1,18 @@
+{
+    "selector": {
+        "label": {
+            "key": "appid"
+        }
+    },
+    "scope": {
+        "parent": "projects/xxxx",
+        "locations": [
+            "us-central1",
+            "global"
+        ],
+        "managementProject": "google-mpf-xxxx"
+    },
+    "action": {
+        "reportOnly": true
+    }
+}

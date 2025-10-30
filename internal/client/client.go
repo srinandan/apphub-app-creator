@@ -83,12 +83,27 @@ var regions = []string{
 	"us-west4",
 }
 
+// ResourceIdentifier holds the common fields for workloads and services.
+// Both workloads and services are made of these two items.
+type ResourceIdentifier struct {
+	AppHubID string `json:"appHubId"`
+	URI      string `json:"uri"`
+}
+
+// Application represents a single application.
+// It has a name and collections for workloads and services.
+type Application struct {
+	Name      string               `json:"name"`
+	Workloads []ResourceIdentifier `json:"workloads"`
+	Services  []ResourceIdentifier `json:"services"`
+}
+
 func GenerateAppsAssetInventory(parent, managementProject, labelKey, labelValue, tagKey, tagValue,
 	contains string, locations []string, attributesData, assetTypesData []byte, reportOnly bool,
-) (map[string][]string, error) {
+) (map[string]Application, error) {
 	logger := clilog.GetLogger()
 	var appLocation string
-	generatedApplications := make(map[string][]string)
+	generatedApplications := map[string]Application{}
 
 	logger.Info("Running CAIS Search with location and Filters")
 	assets, err := searchAssetsFunc(parent, labelKey, labelValue, tagKey, tagValue, contains, locations, assetTypesData)
@@ -125,10 +140,11 @@ func GenerateAppsAssetInventory(parent, managementProject, labelKey, labelValue,
 
 func GenerateAppsCloudLogging(projectID, managementProject, logLabelKey, logLabelValue string,
 	locations []string, attributesData []byte, reportOnly bool,
-) (map[string][]string, error) {
+) (map[string]Application, error) {
 	logger := clilog.GetLogger()
 	var appLocation string
-	generatedApplications := make(map[string][]string)
+	generatedApplications := map[string]Application{}
+	var generatedApp Application
 
 	logger.Info("Running Cloud Logging with location and Filters")
 
@@ -173,14 +189,27 @@ func GenerateAppsCloudLogging(projectID, managementProject, logLabelKey, logLabe
 
 		// If the discovered name is not empty,
 		if discoveredName != "" {
-			appName = logLabelValue
 
-			// store in array to generate report
-			generatedApplications[appName] = []string{
-				discoveredName[strings.LastIndex(discoveredName, "/")+1:],
-				asset.AppHubType,
-				asset.Name,
+			appName = logLabelValue
+			if _, ok := generatedApplications[appName]; !ok {
+				generatedApp = Application{}
+			} else {
+				generatedApp = generatedApplications[appName]
 			}
+
+			generatedApp.Name = appName
+			if asset.AppHubType == "discoveredService" {
+				generatedApp.Services = append(generatedApp.Services, ResourceIdentifier{
+					AppHubID: discoveredName[strings.LastIndex(discoveredName, "/")+1:],
+					URI:      asset.Name,
+				})
+			} else {
+				generatedApp.Workloads = append(generatedApp.Workloads, ResourceIdentifier{
+					AppHubID: discoveredName[strings.LastIndex(discoveredName, "/")+1:],
+					URI:      asset.Name,
+				})
+			}
+			generatedApplications[appName] = generatedApp
 
 			// perform the action is reportOnly is false
 			if !reportOnly {
@@ -251,10 +280,10 @@ func DeleteAllApps(managementProject string, locations []string) error {
 
 func GenerateAppsPerNamespace(parent, managementProject string, locations []string,
 	attributesData []byte, reportOnly bool,
-) (map[string][]string, error) {
+) (map[string]Application, error) {
 	logger := clilog.GetLogger()
 	var appLocation string
-	generatedApplications := make(map[string][]string)
+	generatedApplications := map[string]Application{}
 
 	logger.Info("Running CAIS Search with location and Filters")
 	assets, err := searchKubernetes(parent, locations)
@@ -291,10 +320,10 @@ func GenerateAppsPerNamespace(parent, managementProject string, locations []stri
 
 func GenerateKubernetesApps(parent, managementProject string, locations []string, attributesData []byte,
 	reportOnly bool,
-) (map[string][]string, error) {
+) (map[string]Application, error) {
 	logger := clilog.GetLogger()
 	var appLocation string
-	generatedApplications := make(map[string][]string)
+	generatedApplications := map[string]Application{}
 
 	logger.Info("Running CAIS Search with location and Filters")
 	assets, err := searchKubernetesApps(parent, locations)
@@ -331,11 +360,11 @@ func GenerateKubernetesApps(parent, managementProject string, locations []string
 
 func GenerateFromAll(parent, managementProject string, locations []string, attributesData []byte,
 	reportOnly bool,
-) (map[string][]string, error) {
+) (map[string]Application, error) {
 	logger := clilog.GetLogger()
 	var appLocation string
 	var assets []*assetpb.ResourceSearchResult
-	generatedApplications := make(map[string][]string)
+	generatedApplications := map[string]Application{}
 
 	logger.Info("Running CAIS Search with location and Filters")
 	labeledAssets, err := searchAssetsFunc(parent, "app*", "", "", "", "", locations, nil)
@@ -396,12 +425,12 @@ func GenerateFromAll(parent, managementProject string, locations []string, attri
 
 func GenerateFromProject(parent, managementProject, appName string, projectIds, locations []string, attributesData,
 	assetTypesData []byte, reportOnly bool,
-) (map[string][]string, error) {
+) (map[string]Application, error) {
 	logger := clilog.GetLogger()
 	var appLocation string
 
 	var assets []*assetpb.ResourceSearchResult
-	generatedApplications := make(map[string][]string)
+	generatedApplications := map[string]Application{}
 
 	logger.Info("Running CAIS Search with location and Filters")
 	assets, err := searchProject(parent, projectIds, locations, assetTypesData)
@@ -458,9 +487,11 @@ func DeleteApp(managementProject, name string, locations []string) error {
 func processAssets(assets []*assetpb.ResourceSearchResult, apphubClient appHubClient, managementProject, appLocation string,
 	attributesData []byte, reportOnly bool,
 	getAppNameFunc func(asset *assetpb.ResourceSearchResult) string,
-) (map[string][]string, error) {
+) (map[string]Application, error) {
 	logger := clilog.GetLogger()
-	generatedApplications := make(map[string][]string)
+	generatedApplications := map[string]Application{}
+	var generatedApp Application
+
 	var err error
 	var assetRegion string
 
@@ -493,13 +524,29 @@ func processAssets(assets []*assetpb.ResourceSearchResult, apphubClient appHubCl
 		}
 		// If the discovered name is not empty,
 		if discoveredName != "" {
+			//generatedApp := Application{}
 			appName = getAppNameFunc(asset)
-			// store in array to generate report
-			generatedApplications[appName] = append(generatedApplications[appName], []string{
-				discoveredName[strings.LastIndex(discoveredName, "/")+1:],
-				appHubType,
-				asset.Name,
-			}...)
+
+			if _, ok := generatedApplications[appName]; !ok {
+				generatedApp = Application{}
+			} else {
+				generatedApp = generatedApplications[appName]
+			}
+
+			generatedApp.Name = appName
+			if appHubType == "discoveredService" {
+				generatedApp.Services = append(generatedApp.Services, ResourceIdentifier{
+					AppHubID: discoveredName[strings.LastIndex(discoveredName, "/")+1:],
+					URI:      asset.Name,
+				})
+			} else {
+				generatedApp.Workloads = append(generatedApp.Workloads, ResourceIdentifier{
+					AppHubID: discoveredName[strings.LastIndex(discoveredName, "/")+1:],
+					URI:      asset.Name,
+				})
+			}
+
+			generatedApplications[appName] = generatedApp
 
 			// perform the action is reportOnly is false
 			if !reportOnly {
@@ -546,8 +593,8 @@ func getAppName(labelKey, tagKey, contains, labelValue, tagValue string, asset *
 				}
 			}
 		}
-		logger.Warn("unable to derive an application name, using unknown")
-		return "unknown"
+		logger.Warn("unable to derive an application name, using default name")
+		return getProjectID(asset.Project, context.Background())
 	} else {
 		return contains
 	}

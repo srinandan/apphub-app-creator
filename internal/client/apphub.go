@@ -202,6 +202,17 @@ func registerServiceWithApplication(apiclient appHubClient, projectID, location,
 	// The ID is the 6th element in the path array (0-indexed)
 	id := getServiceWorkloadId(parts[5], truncateName(displayName))
 
+	unregistered, err := isUnregistered(apiclient, appHubType, projectID, location, id)
+	if err != nil {
+		logger.Error("Error looking up registration: ", "error", err)
+		return err
+	}
+
+	if !unregistered {
+		logger.Info("Service is already registered with application. Skipping creation", "service", id, "app-name", appID)
+		return nil
+	}
+
 	// Construct the CreateService Request
 	logger.Info("Registering into Application", appHubType, id, "app-name", appID)
 
@@ -287,6 +298,56 @@ func registerServiceWithApplication(apiclient appHubClient, projectID, location,
 
 		logger.Info("Workload successfully registered to application.", "workload", createdWorkload.Name, "app-name", appID)
 		return nil
+	}
+}
+
+func isUnregistered(apiclient appHubClient, appHubType, projectID, location, discoveredName string) (bool, error) {
+
+	ctx := context.Background()
+	var parent, filter string
+	var count int
+
+	filter = fmt.Sprintf("name:%s", discoveredName)
+
+	if appHubType == "discoveredService" {
+		parent = fmt.Sprintf("projects/%s/locations/%s/discoveredServices", projectID, location)
+		req := &apphubpb.ListDiscoveredServicesRequest{
+			Parent: parent,
+			Filter: filter,
+		}
+
+		it := apiclient.ListDiscoveredServices(ctx, req)
+		for {
+			_, err := it.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				return false, fmt.Errorf("failed to list discovered services: %w", err)
+			}
+			count++
+		}
+
+		return count > 0, nil
+
+	} else {
+		parent = fmt.Sprintf("projects/%s/locations/%s/discoveredWorkloads", projectID, location)
+		req := &apphubpb.ListDiscoveredWorkloadsRequest{
+			Parent: parent,
+			Filter: filter,
+		}
+		it := apiclient.ListDiscoveredWorkloads(ctx, req)
+		for {
+			_, err := it.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				return false, fmt.Errorf("failed to list workloads: %w", err)
+			}
+			count++
+		}
+		return count > 0, nil
 	}
 }
 

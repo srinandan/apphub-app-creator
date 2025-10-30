@@ -120,6 +120,65 @@ The `delete` command deletes one or more applications in a given set of location
 * `--locations`: (Required) GCP location names to delete applications from (e.g. us-central1).
 * `--management-project`: (Required) The project where App Hub is managed.
 
+## Server Mode
+
+`apphub-app-creator` can also run as an HTTP server, which allows you to create applications by making API calls.
+
+### Running the server
+
+To start the server, run the following command:
+
+```shell
+apphub-app-creator server
+```
+
+By default, the server starts on port `8080`. You can specify a different port using the `--port` flag:
+
+```shell
+apphub-app-creator server --port=8081
+```
+
+### API Endpoints
+
+#### Health Check
+
+*   **GET /**
+
+    Returns a `200 OK` status to indicate that the server is running.
+
+#### Generate Applications
+
+*   **POST /generate**
+
+    Creates App Hub applications based on the provided JSON payload.
+
+    **Example Payload (`sample1.json`):**
+
+    ```json
+    {
+        "selector": {
+            "autoDetect": true
+        },
+        "scope": {
+            "parent": "projects/xxxx",
+            "locations": [
+                "us-central1",
+                "global"
+            ],
+            "managementProject": "google-mpf-xxxx"
+        },
+        "action": {
+            "reportOnly": true
+        }
+    }
+    ```
+
+    **Example `curl` command:**
+
+    ```shell
+    curl -X POST -H "Content-Type: application/json" -d @samples/sample1.json http://localhost:8080/generate
+    ```
+
 ## How do I verify the binary?
 
 All artifacts are signed by [cosign](https://github.com/sigstore/cosign). We recommend verifying any artifact before using them.
