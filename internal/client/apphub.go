@@ -305,6 +305,7 @@ func isUnregistered(apiclient appHubClient, appHubType, projectID, location, dis
 
 	ctx := context.Background()
 	var parent, filter string
+	var count int
 
 	filter = fmt.Sprintf("name:%s", discoveredName)
 
@@ -315,12 +316,19 @@ func isUnregistered(apiclient appHubClient, appHubType, projectID, location, dis
 			Filter: filter,
 		}
 
-		resp, err := apiclient.ListDiscoveredServices(ctx, req)
-		if err != nil {
-			return false, fmt.Errorf("failed to list discovered services: %w", err)
+		it := apiclient.ListDiscoveredServices(ctx, req)
+		for {
+			_, err := it.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				return false, fmt.Errorf("failed to list discovered services: %w", err)
+			}
+			count++
 		}
 
-		return len(resp.DiscoveredServices) > 0, nil
+		return count > 0, nil
 
 	} else {
 		parent = fmt.Sprintf("projects/%s/locations/%s/discoveredWorkloads", projectID, location)
@@ -328,11 +336,18 @@ func isUnregistered(apiclient appHubClient, appHubType, projectID, location, dis
 			Parent: parent,
 			Filter: filter,
 		}
-		resp, err := apiclient.ListDiscoveredWorkloads(ctx, req)
-		if err != nil {
-			return false, fmt.Errorf("failed to list discovered workloads: %w", err)
+		it := apiclient.ListDiscoveredWorkloads(ctx, req)
+		for {
+			_, err := it.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				return false, fmt.Errorf("failed to list workloads: %w", err)
+			}
+			count++
 		}
-		return len(resp.DiscoveredWorkloads) > 0, nil
+		return count > 0, nil
 	}
 }
 

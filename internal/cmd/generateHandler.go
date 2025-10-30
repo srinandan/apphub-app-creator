@@ -31,8 +31,8 @@ type GenerateRequest struct {
 }
 
 type Options struct {
-	//Attributes string   `json:"attributes"`
-	AssetTypes []string `json:"assetTypes"`
+	Attributes *Attributes `json:"attributes"`
+	AssetTypes []string    `json:"assetTypes"`
 }
 
 type Selector struct {
@@ -67,11 +67,28 @@ type KeyValue struct {
 }
 
 type GenerateResponse struct {
-	Applications map[string][]string `json:"applications"`
+	Applications map[string]client.Application `json:"applications"`
 }
 
 type ErrorResponse struct {
 	Error string `json:"error"`
+}
+
+type Attributes struct {
+	Criticality     AttributesType `json:"criticality"`
+	Severity        AttributesType `json:"severity"`
+	DeveloperOwners []Contact      `json:"developerOwners"`
+	OperatorOwners  []Contact      `json:"operatorOwners"`
+	BusinessOwners  []Contact      `json:"businessOwners"`
+}
+
+type Contact struct {
+	Email       string `json:"email"`
+	DisplayName string `json:"displayName"`
+}
+
+type AttributesType struct {
+	Type string `json:"type"`
 }
 
 // ValidateExclusive checks that exactly one field in the Selector struct is set.
@@ -127,7 +144,7 @@ func (s *Selector) ValidateExclusive() error {
 
 	count := len(setFields)
 
-	if count == 0 {
+	if count == 0 && len(boolFields) == 0 {
 		return fmt.Errorf("validation failed: exactly one selector field (label, tag, logLabel, contains, projectKeys, perK8sNamespace, perK8sAppLabel, or autoDetect) must be set, but none were")
 	}
 
@@ -173,7 +190,8 @@ func generateHandler(w http.ResponseWriter, r *http.Request) {
 	logger := clilog.GetLogger()
 
 	var generateReq GenerateRequest
-	var generatedApplications map[string][]string
+	var generatedApplications map[string]client.Application
+	var attributesData []byte
 
 	err := json.NewDecoder(r.Body).Decode(&generateReq)
 	if err != nil {
@@ -185,32 +203,48 @@ func generateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := generateReq.Validate(); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if generateReq.Options != nil && generateReq.Options.Attributes != nil {
+		attributesData, err = json.Marshal(generateReq.Options.Attributes)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+	}
+
 	if generateReq.Selector.AutoDetect {
 		generatedApplications, err = client.GenerateFromAll(generateReq.Scope.Parent,
 			generateReq.Scope.ManagementProject,
 			generateReq.Scope.Locations,
-			nil,
+			attributesData,
 			generateReq.Action.ReportOnly)
 	} else if generateReq.Selector.PerK8sNamespace {
 		generatedApplications, err = client.GenerateAppsPerNamespace(generateReq.Scope.Parent,
 			generateReq.Scope.ManagementProject,
 			generateReq.Scope.Locations,
-			nil,
+			attributesData,
 			generateReq.Action.ReportOnly)
 	} else if generateReq.Selector.PerK8sAppLabel {
 		generatedApplications, err = client.GenerateKubernetesApps(generateReq.Scope.Parent,
 			generateReq.Scope.ManagementProject,
 			generateReq.Scope.Locations,
-			nil,
+			attributesData,
 			generateReq.Action.ReportOnly)
 	} else if generateReq.Selector.LogLabel != nil {
 		logProject, _ := GetProjectID(parent)
+		if generateReq.Selector.LogLabel != nil && generateReq.Selector.LogLabel.Value == "" {
+			generateReq.Selector.LogLabel.Value = ""
+		}
 		generatedApplications, err = client.GenerateAppsCloudLogging(logProject,
 			generateReq.Scope.ManagementProject,
 			generateReq.Selector.LogLabel.Key,
 			generateReq.Selector.LogLabel.Value,
 			generateReq.Scope.Locations,
-			nil,
+			attributesData,
 			generateReq.Action.ReportOnly)
 	} else if generateReq.Selector.ProjectKeys != nil {
 		generatedApplications, err = client.GenerateFromProject(generateReq.Scope.Parent,
@@ -218,12 +252,29 @@ func generateHandler(w http.ResponseWriter, r *http.Request) {
 			generateReq.Selector.ProjectKeys.AppName,
 			generateReq.Selector.ProjectKeys.ProjectIds,
 			generateReq.Scope.Locations,
-			nil,
+			attributesData,
 			nil,
 			generateReq.Action.ReportOnly)
 	} else {
-		if generateReq.Selector.Label != nil && generateReq.Selector.Label.Value == "" {
+
+		if generateReq.Selector.Tag == nil {
+			generateReq.Selector.Tag = &KeyValue{
+				Key:   "",
+				Value: "",
+			}
+		}
+
+		if generateReq.Selector.Label == nil {
+			generateReq.Selector.Label = &KeyValue{
+				Key:   "",
+				Value: "",
+			}
+		} else if generateReq.Selector.Label != nil && generateReq.Selector.Label.Value == "" {
 			generateReq.Selector.Label.Value = "*"
+		}
+
+		if generateReq.Selector.Contains == nil {
+			generateReq.Selector.Contains = new(string)
 		}
 		generatedApplications, err = client.GenerateAppsAssetInventory(generateReq.Scope.Parent,
 			generateReq.Scope.ManagementProject,
@@ -233,7 +284,7 @@ func generateHandler(w http.ResponseWriter, r *http.Request) {
 			generateReq.Selector.Tag.Value,
 			*generateReq.Selector.Contains,
 			generateReq.Scope.Locations,
-			nil,
+			attributesData,
 			nil,
 			generateReq.Action.ReportOnly)
 	}
@@ -275,4 +326,11 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	// Write status code and response
 	w.WriteHeader(code)
 	w.Write(response)
+}
+
+func getString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

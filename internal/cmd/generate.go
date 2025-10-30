@@ -93,7 +93,7 @@ var GenAppsCmd = &cobra.Command{
 		autoDetect, _ := cmd.Flags().GetBool("auto-detect")
 
 		var attributesData, assetTypesData []byte
-		var generatedApplications map[string][]string
+		var generatedApplications map[string]client.Application
 
 		if managementProject == "" {
 			managementProject, err = GetProjectID(parent)

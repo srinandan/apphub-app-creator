@@ -86,6 +86,14 @@ func (m *mockAppHubClient) ListApplications(ctx context.Context, req *apphubpb.L
 	return nil
 }
 
+func (m *mockAppHubClient) ListDiscoveredServices(ctx context.Context, req *apphubpb.ListDiscoveredServicesRequest, opts ...gax.CallOption) *apphub.DiscoveredServiceIterator {
+	return nil
+}
+
+func (m *mockAppHubClient) ListDiscoveredWorkloads(ctx context.Context, req *apphubpb.ListDiscoveredWorkloadsRequest, opts ...gax.CallOption) *apphub.DiscoveredWorkloadIterator {
+	return nil
+}
+
 func (m *mockAppHubClient) Close() error {
 	return nil
 }

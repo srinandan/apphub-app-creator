@@ -6,6 +6,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"internal/client"
+
 	"github.com/spf13/pflag"
 )
 
@@ -63,24 +65,18 @@ func IsFolder(s string) bool {
 	return true
 }
 
-func PrintGeneratedApplication(generatedApplications map[string][]string) {
+func PrintGeneratedApplication(generatedApplications map[string]client.Application) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', tabwriter.Debug)
-	defer w.Flush()
+	fmt.Fprintln(w, "APPLICATION\tTYPE\tAPPHUB ID\tURI")
+	fmt.Fprintln(w, "-----------\t----\t---------\t---")
 
-	for appName, generatedAppValues := range generatedApplications {
-		fmt.Fprintln(w, "APP NAME\tDISCOVERED UUID\tAPP HUB TYPE\tRESOURCE URI")
-		fmt.Fprintln(w, "--------\t---------------\t-------------\t-----------")
-		// Loop through the slice with the index (i) and value
-		fmt.Fprintf(w, "%s\t", appName)
-		for i, value := range generatedAppValues {
-			// Print the item followed by a tab character
-			fmt.Fprintf(w, "%s\t", value)
-			if (i+1)%3 == 0 {
-				fmt.Fprintf(w, "\n\t")
-			}
+	for _, app := range generatedApplications {
+		for _, workload := range app.Workloads {
+			fmt.Fprintf(w, "%s\tWorkload\t%s\t%s\n", app.Name, workload.AppHubID, workload.URI)
 		}
-		fmt.Fprintln(w, "")
-		// fmt.Fprintln(w, "APP NAME\tDISCOVERED UUID\tAPP HUB TYPE\tRESOURCE URI")
-		// fmt.Fprintln(w, "--------\t---------------\t-------------\t-----------")
+		for _, service := range app.Services {
+			fmt.Fprintf(w, "%s\tService\t%s\t%s\n", app.Name, service.AppHubID, service.URI)
+		}
 	}
+	w.Flush()
 }
