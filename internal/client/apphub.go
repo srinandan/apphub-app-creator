@@ -201,7 +201,6 @@ func registerServiceWithApplication(apiclient appHubClient, projectID, location,
 
 	// The ID is the 6th element in the path array (0-indexed)
 	id := getServiceWorkloadId(parts[5], truncateName(displayName))
-
 	unregistered, err := isUnregistered(apiclient, appHubType, projectID, location, id)
 	if err != nil {
 		logger.Error("Error looking up registration: ", "error", err)
@@ -310,7 +309,7 @@ func isUnregistered(apiclient appHubClient, appHubType, projectID, location, dis
 	filter = fmt.Sprintf("name:%s", discoveredName)
 
 	if appHubType == "discoveredService" {
-		parent = fmt.Sprintf("projects/%s/locations/%s/discoveredServices", projectID, location)
+		parent = fmt.Sprintf("projects/%s/locations/%s", projectID, location)
 		req := &apphubpb.ListDiscoveredServicesRequest{
 			Parent: parent,
 			Filter: filter,
@@ -331,7 +330,7 @@ func isUnregistered(apiclient appHubClient, appHubType, projectID, location, dis
 		return count > 0, nil
 
 	} else {
-		parent = fmt.Sprintf("projects/%s/locations/%s/discoveredWorkloads", projectID, location)
+		parent = fmt.Sprintf("projects/%s/locations/%s", projectID, location)
 		req := &apphubpb.ListDiscoveredWorkloadsRequest{
 			Parent: parent,
 			Filter: filter,
@@ -530,7 +529,7 @@ func deleteApp(apiclient appHubClient, projectID, location, appID string) error 
 func getAppHubClient() (appHubClient, error) {
 	ctx := context.Background()
 
-	apiclient, err := apphub.NewClient(ctx)
+	apiclient, err := apphub.NewRESTClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create App Hub client: %w", err)
 	}
