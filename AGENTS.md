@@ -55,7 +55,7 @@ Discovery is powered by:
 │   ├── sample2.json                    # Label-based generation sample
 │   └── sample3.json                    # Tag-based generation sample
 ├── skills/                             # Agent skills directory
-│   └── apphub-app-creator/             # Skill teaching agents how to operate the CLI
+│   └── apphub-app-creator-skill/       # Skill teaching agents how to operate the CLI
 │       └── SKILL.md                    # CLI skill documentation and execution guides
 ├── Dockerfile                          # Multi-stage container build with distroless non-root image
 ├── .goreleaser.yml                     # GoReleaser configuration for release builds & signing

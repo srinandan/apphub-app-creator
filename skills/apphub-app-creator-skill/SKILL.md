@@ -1,6 +1,11 @@
 ---
-name: apphub-app-creator
+name: apphub-app-creator-skill
 description: Discovers Google Cloud resources (GKE, Cloud Run, Compute Engine, etc.) across projects or folders and creates or manages Google Cloud App Hub Applications, Services, and Workloads using the apphub-app-creator CLI or HTTP API. Use whenever creating App Hub apps, auditing GCP resources for App Hub, grouping infrastructure by labels/tags/namespaces, configuring App Hub attributes (criticality, environment, ownership), or deleting App Hub applications.
+license: Apache-2.0
+allowed-tools: "run_command view_file write_to_file"
+metadata:
+  author: Srinandan Sridhar
+  version: "0.8.0"
 ---
 
 # App Hub App Creator Skill
