@@ -229,3 +229,4 @@ The server exposes the following endpoints:
 2. **Minimal Diff**: Implement only what was requested. Avoid unnecessary refactoring or adding unused configuration parameters.
 3. **No Hardcoded Credentials**: Do not hardcode project IDs, keys, or credentials. Always respect user-supplied flags/payloads and default ADC credentials.
 4. **Documentation**: If adding a new command flag or API parameter, update the relevant markdown files in `docs/` and sample JSON files in `samples/`.
+5. **Branch & Pull Request Workflow**: **Never commit directly to the `main` branch.** Always create a GitHub issue first, create a dedicated feature or bugfix branch, push the branch to remote, and open a Pull Request for review.
