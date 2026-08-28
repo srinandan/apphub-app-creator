@@ -221,6 +221,34 @@ The repository includes a modern Vue 3 web interface located in [`frontend/`](./
 
 ---
 
+## AI Agent Skill
+
+This repository provides an [Agent Skill](https://agentskills.io) packaged in [`apphub-app-creator-skill/`](./apphub-app-creator-skill/) that teaches AI coding assistants (GitHub Copilot CLI, Gemini CLI, Claude Code, etc.) how to discover Google Cloud resources and manage App Hub applications, services, and workloads.
+
+### Installing via GitHub CLI (`gh skill`)
+
+Install the skill directly into your environment using the GitHub CLI:
+
+```shell
+gh skill install srinandan/apphub-app-creator apphub-app-creator-skill
+```
+
+To preview the skill before installing:
+
+```shell
+gh skill preview srinandan/apphub-app-creator apphub-app-creator-skill
+```
+
+### Using with Local Agents
+
+Once installed (or by copying [`apphub-app-creator-skill/SKILL.md`](./apphub-app-creator-skill/SKILL.md) to your workspace or agent skills directory such as `~/.agents/skills/apphub-app-creator-skill/` or `~/.gemini/config/skills/apphub-app-creator-skill/`), your AI assistant can:
+- **Analyze infrastructure** and select the optimal discovery mode (`--auto-detect`, `--label-key`, `--tag-key`, `--per-k8s-namespace`, etc.).
+- **Perform safe audits** by running `--report-only` first before creating cloud resources.
+- **Attach governance metadata** (business criticality, environment classification, owner contacts) using formatted `attributes.json` configs.
+- **Manage lifecycle** of App Hub applications, services, and workloads automatically.
+
+---
+
 ## Artifact Verification
 
 All release binaries and container images are cryptographically signed using [Cosign](https://github.com/sigstore/cosign).
