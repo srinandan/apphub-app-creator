@@ -14,17 +14,13 @@
 
 run:
   concurrency: 4
-  deadline: 20m
+  timeout: 20m
   issues-exit-code: 1
   tests: false
-  exclude-dirs:
-    - cicd
-    - docs
-    - test
-    - third-party
 
 output:
-  formats: tab
+  formats:
+    - format: tab
   print-issued-lines: true
   print-linter-name: true
 
@@ -32,27 +28,18 @@ linters-settings:
   errcheck:
     check-type-assertions: false
     check-blank: false
-  golint:
-    min-confidence: 0.8
   gofmt:
     simplify: true
   gocyclo:
     min-complexity: 10
-  maligned:
-    suggest-new: true
   goconst:
     min-len: 3
     min-occurrences: 3
-  depguard:
-    list-type: blacklist
-    include-go-root: false
   misspell:
     locale: US
   lll:
     line-length: 120
     tab-width: 1
-  unused:
-    check-exported: false
   unparam:
     check-exported: false
   nakedret:
@@ -69,21 +56,14 @@ linters-settings:
 
 linters:
   enable:
-    - govet
     - errcheck
-#   - copyloopvar
     - gocritic
     - gofumpt
     - revive
-    - gosimple
     - govet
     - lll
-    - stylecheck
-    - unconvert
-    - unparam
-    - ineffassign
     - staticcheck
-    - typecheck
+    - ineffassign
     - unused
     - bodyclose
     - goconst
@@ -94,11 +74,15 @@ linters:
     - nakedret
     - prealloc
     - unconvert
-  enable-all: false
   disable-all: true
   fast: false
 
 issues:
+  exclude-dirs:
+    - cicd
+    - docs
+    - test
+    - third-party
   exclude-rules:
     - linters:
         - gosec
