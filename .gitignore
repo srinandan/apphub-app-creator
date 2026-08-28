@@ -5,7 +5,7 @@
 *.so
 *.dylib
 *.zip
-apphub-app-creator
+/apphub-app-creator
 .DS_Store
 
 # Test binary, built with `go test -c`
@@ -43,4 +43,7 @@ dist/
 frontend/node_modules/
 frontend/dist/
 frontend/.vscode/
+
+# Agent skills
+.agents/skills/
 

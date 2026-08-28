@@ -54,6 +54,8 @@ Discovery is powered by:
 │   ├── sample1.json                    # Auto-detect generation sample
 │   ├── sample2.json                    # Label-based generation sample
 │   └── sample3.json                    # Tag-based generation sample
+├── apphub-app-creator-skill/           # Agent skill folder (discovered by gh skill)
+│   └── SKILL.md                        # CLI skill documentation and execution guides
 ├── Dockerfile                          # Multi-stage container build with distroless non-root image
 ├── .goreleaser.yml                     # GoReleaser configuration for release builds & signing
 ├── go.mod                              # Root Go module (v1.26.5) with internal replace directives
