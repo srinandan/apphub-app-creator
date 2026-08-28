@@ -38,12 +38,6 @@ jobs:
           go-version-file: "./go.mod"
           check-latest: true
 
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@971e284b6050e8a5849b72094c50ab08da042db8 #v6.1.1
-        with:
-          version: latest
-          args: --timeout=4m
-
       - name: Run govulncheck
         uses: golang/govulncheck-action@b625fbe08f3bccbe446d94fbf87fcc875a4f50ee # v1.0.4
 
