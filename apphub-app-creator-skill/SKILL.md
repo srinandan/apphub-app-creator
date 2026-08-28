@@ -4,7 +4,6 @@ description: Discovers Google Cloud resources (GKE, Cloud Run, Compute Engine, e
 license: Apache-2.0
 allowed-tools: "run_command view_file write_to_file"
 metadata:
-  author: Srinandan Sridhar
   version: "0.8.0"
 ---
 
