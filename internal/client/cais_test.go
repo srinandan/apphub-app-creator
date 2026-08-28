@@ -30,8 +30,98 @@ func TestIdentifyServiceOrWorkload(t *testing.T) {
 			want:      "discoveredWorkload",
 		},
 		{
+			name:      "DaemonSet should be a workload",
+			assetType: "apps.k8s.io/DaemonSet",
+			want:      "discoveredWorkload",
+		},
+		{
+			name:      "StatefulSet should be a workload",
+			assetType: "apps.k8s.io/StatefulSet",
+			want:      "discoveredWorkload",
+		},
+		{
+			name:      "CronJob should be a workload",
+			assetType: "batch.k8s.io/CronJob",
+			want:      "discoveredWorkload",
+		},
+		{
+			name:      "Cloud Run Job should be a workload",
+			assetType: "run.googleapis.com/Job",
+			want:      "discoveredWorkload",
+		},
+		{
+			name:      "Cloud Run WorkerPool should be a workload",
+			assetType: "run.googleapis.com/WorkerPool",
+			want:      "discoveredWorkload",
+		},
+		{
+			name:      "Compute InstanceGroup should be a workload",
+			assetType: "compute.googleapis.com/InstanceGroup",
+			want:      "discoveredWorkload",
+		},
+		{
+			name:      "ReasoningEngine should be a workload",
+			assetType: "aiplatform.googleapis.com/ReasoningEngine",
+			want:      "discoveredWorkload",
+		},
+		{
+			name:      "BatchPredictionJob should be a workload",
+			assetType: "aiplatform.googleapis.com/BatchPredictionJob",
+			want:      "discoveredWorkload",
+		},
+		{
+			name:      "TuningJob should be a workload",
+			assetType: "aiplatform.googleapis.com/TuningJob",
+			want:      "discoveredWorkload",
+		},
+		{
+			name:      "Cloud Build WorkerPool should be a workload",
+			assetType: "cloudbuild.googleapis.com/WorkerPool",
+			want:      "discoveredWorkload",
+		},
+		{
+			name:      "Cloud Scheduler Job should be a workload",
+			assetType: "cloudscheduler.googleapis.com/Job",
+			want:      "discoveredWorkload",
+		},
+		{
+			name:      "Config Deployment should be a workload",
+			assetType: "config.googleapis.com/Deployment",
+			want:      "discoveredWorkload",
+		},
+		{
+			name:      "Discovery Engine Agent should be a workload",
+			assetType: "discoveryengine.googleapis.com/Agent",
+			want:      "discoveredWorkload",
+		},
+		{
+			name:      "Discovery Engine Assistant should be a workload",
+			assetType: "discoveryengine.googleapis.com/Assistant",
+			want:      "discoveredWorkload",
+		},
+		{
+			name:      "Gemini Data Analytics DataAgent should be a workload",
+			assetType: "geminidataanalytics.googleapis.com/DataAgent",
+			want:      "discoveredWorkload",
+		},
+		{
 			name:      "Cloud Run Service should be a service",
 			assetType: "run.googleapis.com/Service",
+			want:      "discoveredService",
+		},
+		{
+			name:      "ForwardingRule should be a service",
+			assetType: "compute.googleapis.com/ForwardingRule",
+			want:      "discoveredService",
+		},
+		{
+			name:      "Storage Bucket should be a service",
+			assetType: "storage.googleapis.com/Bucket",
+			want:      "discoveredService",
+		},
+		{
+			name:      "Agent Registry McpServer should be a service",
+			assetType: "agentregistry.googleapis.com/GoogleMcpServer",
 			want:      "discoveredService",
 		},
 		{
@@ -44,7 +134,7 @@ func TestIdentifyServiceOrWorkload(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := identifyServiceOrWorkload(tt.assetType); got != tt.want {
-				t.Errorf("identifyServiceOrWorkload() = %v, want %v", got, tt.want)
+				t.Errorf("identifyServiceOrWorkload(%q) = %v, want %v", tt.assetType, got, tt.want)
 			}
 		})
 	}

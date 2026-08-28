@@ -34,3 +34,54 @@ func TestGetRootCmd(t *testing.T) {
 		t.Errorf("expected Use to be 'apphub-app-creator', got '%s'", rootCmd.Use)
 	}
 }
+
+func TestRootCmdPersistentPreRunE(t *testing.T) {
+	tests := []struct {
+		name         string
+		level        string
+		disableCheck bool
+		wantErr      bool
+	}{
+		{
+			name:         "info level with disable check",
+			level:        "info",
+			disableCheck: true,
+			wantErr:      false,
+		},
+		{
+			name:         "warn level",
+			level:        "warn",
+			disableCheck: true,
+			wantErr:      false,
+		},
+		{
+			name:         "error level",
+			level:        "error",
+			disableCheck: true,
+			wantErr:      false,
+		},
+		{
+			name:         "off level",
+			level:        "off",
+			disableCheck: true,
+			wantErr:      false,
+		},
+		{
+			name:         "invalid level",
+			level:        "debug_invalid",
+			disableCheck: true,
+			wantErr:      true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			logLevel = tt.level
+			disableCheck = tt.disableCheck
+			err := RootCmd.PersistentPreRunE(RootCmd, []string{})
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RootCmd.PersistentPreRunE() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

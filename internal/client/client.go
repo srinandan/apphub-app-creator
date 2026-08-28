@@ -31,9 +31,56 @@ import (
 )
 
 var (
-	searchAssetsFunc    = searchAssets
-	getAppHubClientFunc = getAppHubClient
+	searchAssetsFunc         = searchAssets
+	searchKubernetesFunc     = searchKubernetes
+	searchKubernetesAppsFunc = searchKubernetesApps
+	searchProjectFunc        = searchProject
+	filterLogsFunc           = filterLogs
+	getAppHubClientFunc      = getAppHubClient
+	deleteAppFunc            = deleteApp
 )
+
+// SetSearchAssetsFuncForTest overrides searchAssetsFunc for testing and returns a cleanup func.
+func SetSearchAssetsFuncForTest(fn func(parent, labelKey, labelValue, tagKey, tagValue, contains string, locations []string, assetTypesData []byte) ([]*assetpb.ResourceSearchResult, error)) func() {
+	orig := searchAssetsFunc
+	searchAssetsFunc = fn
+	return func() { searchAssetsFunc = orig }
+}
+
+// SetSearchKubernetesFuncForTest overrides searchKubernetesFunc for testing and returns a cleanup func.
+func SetSearchKubernetesFuncForTest(fn func(parent string, locations []string) ([]*assetpb.ResourceSearchResult, error)) func() {
+	orig := searchKubernetesFunc
+	searchKubernetesFunc = fn
+	return func() { searchKubernetesFunc = orig }
+}
+
+// SetSearchKubernetesAppsFuncForTest overrides searchKubernetesAppsFunc for testing and returns a cleanup func.
+func SetSearchKubernetesAppsFuncForTest(fn func(parent string, locations []string) ([]*assetpb.ResourceSearchResult, error)) func() {
+	orig := searchKubernetesAppsFunc
+	searchKubernetesAppsFunc = fn
+	return func() { searchKubernetesAppsFunc = orig }
+}
+
+// SetSearchProjectFuncForTest overrides searchProjectFunc for testing and returns a cleanup func.
+func SetSearchProjectFuncForTest(fn func(parent string, projectIds, locations []string, assetTypesData []byte) ([]*assetpb.ResourceSearchResult, error)) func() {
+	orig := searchProjectFunc
+	searchProjectFunc = fn
+	return func() { searchProjectFunc = orig }
+}
+
+// SetFilterLogsFuncForTest overrides filterLogsFunc for testing and returns a cleanup func.
+func SetFilterLogsFuncForTest(fn func(projectID, labelKey, labelValue string, locations []string) (map[string]logAsset, error)) func() {
+	orig := filterLogsFunc
+	filterLogsFunc = fn
+	return func() { filterLogsFunc = orig }
+}
+
+// SetAppHubClientFuncForTest overrides getAppHubClientFunc for testing and returns a cleanup func.
+func SetAppHubClientFuncForTest(fn func() (appHubClient, error)) func() {
+	orig := getAppHubClientFunc
+	getAppHubClientFunc = fn
+	return func() { getAppHubClientFunc = orig }
+}
 
 var multiRegions = []string{"us", "eu", "global", "eur4", "nam3", "nam4", "nam6", "nam7", "nam8", "asia", "asia1"}
 
@@ -148,7 +195,7 @@ func GenerateAppsCloudLogging(projectID, managementProject, logLabelKey, logLabe
 
 	logger.Info("Running Cloud Logging with location and Filters")
 
-	assets, err := filterLogs(projectID, logLabelKey, logLabelValue, locations)
+	assets, err := filterLogsFunc(projectID, logLabelKey, logLabelValue, locations)
 	if err != nil {
 		return generatedApplications, fmt.Errorf("error searching logs: %w", err)
 	}
@@ -269,7 +316,7 @@ func DeleteAllApps(managementProject string, locations []string) error {
 
 			appName := app.Name[strings.LastIndex(app.Name, "/")+1:]
 			logger.Info("Deleting application", "application", appName, "location", location)
-			if err = deleteApp(apphubClient, managementProject, location, appName); err != nil {
+			if err = deleteAppFunc(apphubClient, managementProject, location, appName); err != nil {
 				return fmt.Errorf("error deleting application %s: %w", appName, err)
 			}
 		}
@@ -286,7 +333,7 @@ func GenerateAppsPerNamespace(parent, managementProject string, locations []stri
 	generatedApplications := map[string]Application{}
 
 	logger.Info("Running CAIS Search with location and Filters")
-	assets, err := searchKubernetes(parent, locations)
+	assets, err := searchKubernetesFunc(parent, locations)
 	if err != nil {
 		return generatedApplications, fmt.Errorf("error searching assets: %w", err)
 	}
@@ -326,7 +373,7 @@ func GenerateKubernetesApps(parent, managementProject string, locations []string
 	generatedApplications := map[string]Application{}
 
 	logger.Info("Running CAIS Search with location and Filters")
-	assets, err := searchKubernetesApps(parent, locations)
+	assets, err := searchKubernetesAppsFunc(parent, locations)
 	if err != nil {
 		return generatedApplications, fmt.Errorf("error searching assets: %w", err)
 	}
@@ -390,7 +437,7 @@ func GenerateFromAll(parent, managementProject string, locations []string, attri
 	}
 
 	logger.Info("Running CAIS Search for Kubernetes labels")
-	kubernetesAssets, err := searchKubernetes(parent, locations)
+	kubernetesAssets, err := searchKubernetesFunc(parent, locations)
 	if err != nil {
 		return generatedApplications, fmt.Errorf("error searching assets: %w", err)
 	}
@@ -433,7 +480,7 @@ func GenerateFromProject(parent, managementProject, appName string, projectIds, 
 	generatedApplications := map[string]Application{}
 
 	logger.Info("Running CAIS Search with location and Filters")
-	assets, err := searchProject(parent, projectIds, locations, assetTypesData)
+	assets, err := searchProjectFunc(parent, projectIds, locations, assetTypesData)
 	if err != nil {
 		return generatedApplications, fmt.Errorf("error searching assets: %w", err)
 	}
@@ -476,7 +523,7 @@ func DeleteApp(managementProject, name string, locations []string) error {
 
 	logger.Info("Attempting deletion of application " + name)
 	for _, location := range locations {
-		if err = deleteApp(apphubClient, managementProject, location, name); err != nil {
+		if err = deleteAppFunc(apphubClient, managementProject, location, name); err != nil {
 			return fmt.Errorf("error deleting application %s: %w", name, err)
 		}
 	}

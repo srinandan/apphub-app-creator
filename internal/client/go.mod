@@ -1,6 +1,6 @@
 module client
 
-go 1.24.4
+go 1.26.5
 
 replace internal/clilog => ../clilog
 
@@ -14,6 +14,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.15.0
 	golang.org/x/sync v0.18.0
 	google.golang.org/api v0.249.0
+	google.golang.org/genproto/googleapis/api v0.0.0-20250707201910-8d1bb00bc6a7
 	google.golang.org/grpc v1.75.1
 	google.golang.org/protobuf v1.36.9
 	internal/clilog v0.0.0-00010101000000-000000000000
@@ -47,6 +48,5 @@ require (
 	golang.org/x/text v0.31.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 	google.golang.org/genproto v0.0.0-20250603155806-513f23925822 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250818200422-3122310a409c // indirect
 )

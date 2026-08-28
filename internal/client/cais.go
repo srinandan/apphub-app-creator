@@ -36,30 +36,58 @@ var INCLUDED_ASSETS = []string{
 	"apps.k8s.io/StatefulSet",
 	"compute.googleapis.com/InstanceGroup",
 	"aiplatform.googleapis.com/ReasoningEngine",
+	"cloudfunctions.googleapis.com/CloudFunction",
 	// networking
 	"compute.googleapis.com/ForwardingRule",
 	"compute.googleapis.com/BackendService",
-	//"gateway.networking.k8s.io/Gateway",
-	// storage
+	"compute.googleapis.com/ServiceAttachment",
+	// storage & messaging
 	"storage.googleapis.com/Bucket",
 	"pubsub.googleapis.com/Topic",
 	"pubsub.googleapis.com/Subscription",
-	// databases
+	// databases & analytics
 	"alloydb.googleapis.com/Instance",
 	"spanner.googleapis.com/Instance",
+	"spanner.googleapis.com/Database",
 	"sqladmin.googleapis.com/Instance",
-	"alloydb.googleapis.com/Instance",
 	"redis.googleapis.com/Instance",
-	// config
+	"bigquery.googleapis.com/Dataset",
+	"firestore.googleapis.com/Database",
+	// AI & config & workflows
+	"aiplatform.googleapis.com/Endpoint",
 	"secretmanager.googleapis.com/Secret",
+	"workflows.googleapis.com/Workflow",
+	"container.googleapis.com/Cluster",
 }
 
 var KUBERNETES_ASSETS = []string{
 	"apps.k8s.io/Deployment",
 	"apps.k8s.io/DaemonSet",
 	"apps.k8s.io/StatefulSet",
+	"batch.k8s.io/CronJob",
 	"k8s.io/Service",
 	"gateway.networking.k8s.io/Gateway",
+	"networking.k8s.io/Ingress",
+	"networking.istio.io/VirtualService",
+}
+
+var WORKLOADS = []string{
+	"aiplatform.googleapis.com/BatchPredictionJob",
+	"aiplatform.googleapis.com/ReasoningEngine",
+	"aiplatform.googleapis.com/TuningJob",
+	"apps.k8s.io/DaemonSet",
+	"apps.k8s.io/Deployment",
+	"apps.k8s.io/StatefulSet",
+	"batch.k8s.io/CronJob",
+	"cloudbuild.googleapis.com/WorkerPool",
+	"cloudscheduler.googleapis.com/Job",
+	"compute.googleapis.com/InstanceGroup",
+	"config.googleapis.com/Deployment",
+	"discoveryengine.googleapis.com/Agent",
+	"discoveryengine.googleapis.com/Assistant",
+	"geminidataanalytics.googleapis.com/DataAgent",
+	"run.googleapis.com/Job",
+	"run.googleapis.com/WorkerPool",
 }
 
 var GKE_EXCLUSION_NAMESPACES = []string{
@@ -376,17 +404,8 @@ func searchProject(parent string, projectIds, locations []string, assetTypesData
 }
 
 func identifyServiceOrWorkload(assetType string) string {
-	WORKLOADS := []string{
-		"apps.k8s.io/Deployment",
-		"apps.k8s.io/DaemonSet",
-		"apps.k8s.io/StatefulSet",
-		"run.googleapis.com/Job",
-		"compute.googleapis.com/InstanceGroup",
-		"aiplatform.googleapis.com/ReasoningEngine",
-	}
 	if slices.Contains(WORKLOADS, assetType) {
 		return "discoveredWorkload"
-	} else {
-		return "discoveredService"
 	}
+	return "discoveredService"
 }
