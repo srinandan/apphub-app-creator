@@ -1,189 +1,231 @@
 # apphub-app-creator
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/srinandan/apphub-app-creator)](https://goreportcard.com/report/github.com/srinandan/apphub-app-creator)
+[![CI](https://github.com/srinandan/apphub-app-creator/actions/workflows/ci.yml/badge.svg)](https://github.com/srinandan/apphub-app-creator/actions/workflows/ci.yml)
 [![GitHub release](https://img.shields.io/github/v/release/srinandan/apphub-app-creator)](https://github.com/srinandan/apphub-app-creator/releases)
+[![Go Reference](https://pkg.go.dev/badge/github.com/srinandan/apphub-app-creator.svg)](https://pkg.go.dev/github.com/srinandan/apphub-app-creator)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/srinandan/apphub-app-creator)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-`apphub-app-creator` is a command-line utility to generate [Google Cloud App Hub](https://cloud.google.com/app-hub/docs/overview) applications from [Cloud Asset Inventory (CAIS)](https://cloud.google.com/asset-inventory/docs/overview) asset searches.
+`apphub-app-creator` is a CLI utility and HTTP service to automatically discover Google Cloud resources and manage [Google Cloud App Hub](https://cloud.google.com/app-hub/docs/overview) Applications, Services, and Workloads using [Cloud Asset Inventory (CAIS)](https://cloud.google.com/asset-inventory/docs/overview), Cloud Logging, Kubernetes metadata, or resource naming conventions.
 
-This tool simplifies the process of creating App Hub applications by allowing you to define them based on existing GCP resource labels, tags or resource names.
+---
 
 ## Installation
 
-`apphub-app-creator` is a binary and you can download the appropriate one for your platform from [here](https://github.com/srinandan/apphub-app-creator/releases). Run this script to download & install the latest version (on Linux or Darwin)
+### Binary Download (Linux / macOS)
+Download and install the latest binary using the automated install script:
 
 ```sh
 curl -L https://raw.githubusercontent.com/srinandan/apphub-app-creator/main/downloadLatest.sh | sh -
 ```
 
-or
+Alternatively, download platform-specific binaries directly from the [Releases](https://github.com/srinandan/apphub-app-creator/releases) page.
+
+### Docker Container
+Run directly via the pre-built container image:
 
 ```sh
 docker run -ti --rm ghcr.io/srinandan/apphub-app-creator:latest apps generate --help
 ```
 
-## Usage
+---
 
-The primary command is `generate`, which creates App Hub applications based on a GCP resource label.
-
-### Prerequisites
+## Prerequisites
 
 * Ensure you have authenticated with Google Cloud CLI:
+  ```shell
+  gcloud auth login
+  gcloud auth application-default login
+  ```
 
-    ```shell
-    gcloud auth login
-    gcloud auth application-default login
-    ```
+* The user or service account executing the tool must possess the following IAM roles:
+  * `roles/apphub.admin` on the App Hub management project.
+  * `roles/cloudasset.viewer` on the project or folder where resources reside.
+  * `roles/logging.viewer` on the project where Cloud Logging entries are stored.
 
-* The user or service account running the tool must have the following IAM roles:
-  * `apphub.admin` on the App Hub management project.
-  * `cloudasset.viewer` on the project where your resources are located.
-  * `logging.viewer` on the project where logs are written to.
+* Ensure App Hub is set up on a [Host Project](https://cloud.google.com/app-hub/docs/set-up-app-hub-host-project) or enabled for a [Folder](https://cloud.google.com/app-hub/docs/set-up-app-hub-folder).
 
-* Please follow the instructions here to setup on [Host Projects](https://cloud.google.com/app-hub/docs/set-up-app-hub-host-project)
+---
 
-* **OR** Please follow the instructions here to enable a [folder](https://cloud.google.com/app-hub/docs/set-up-app-hub-folder) for Application Management.
+## Discovery Modes & Selectors
 
-### Generate Command
+The tool discovers and groups resources into App Hub applications based on mutually exclusive selectors:
 
-Please see the [documentation](./docs/apphub-app-creator.md) for all available options.
+| Selector Flag | HTTP API Field | Description | Example |
+| :--- | :--- | :--- | :--- |
+| `--auto-detect` | `selector.autoDetect` | Discovers apps using well-known labels & tags (`app`, `application`, `app.kubernetes.io/name`). | `--auto-detect=true` |
+| `--label-key` `[--label-value]` | `selector.label` | Groups assets sharing a specific GCP resource label key (and optional value). | `--label-key="env" --label-value="prod"` |
+| `--tag-key` `[--tag-value]` | `selector.tag` | Groups assets sharing a GCP Resource Manager tag key and optional value. | `--tag-key="cost-center" --tag-value="123"` |
+| `--log-label-key` `[--log-label-value]` | `selector.logLabel` | Discovers active assets from Cloud Logging entry labels. | `--log-label-key="service_name"` |
+| `--per-k8s-namespace` | `selector.perK8sNamespace` | Generates one App Hub application per discovered Kubernetes namespace. | `--per-k8s-namespace=true` |
+| `--per-k8s-app-label` | `selector.perK8sAppLabel` | Generates one App Hub application per `app.kubernetes.io/name` label. | `--per-k8s-app-label=true` |
+| `--project-keys` `--app-name` | `selector.projectKeys` | Groups all assets across specified projects into a single named application. | `--project-keys="p1" --app-name="my-app"` |
+| `--contains` | `selector.contains` | Filters resources whose full resource name contains a substring. | `--contains="frontend"` |
 
-#### Examples
+---
 
-##### Automatically detect applications
+## CLI Usage
 
-To create App Hub applications based on well known labels and tags:
+For complete documentation on all flags and subcommands, see the [CLI Documentation](./docs/apphub-app-creator.md).
+
+### `apps generate` Examples
+
+#### 1. Auto-Detect Applications
+Automatically discover applications based on standard application labels and tags:
 
 ```shell
-docker run -it --rm ghcr.io/srinandan/apphub-app-creator:latest apps generate \
+./apphub-app-creator apps generate \
     --project-id="my-gcp-project" \
     --locations="us-central1" \
     --auto-detect=true
 ```
 
-##### Generate applications based on label key
-
-To create App Hub applications for all resources in `my-gcp-project` that have the label key `appid`, you would run:
+#### 2. Group by Resource Label Key
+Create one App Hub application for each distinct value of a given label key (e.g. `appid`):
 
 ```shell
-docker run -it --rm ghcr.io/srinandan/apphub-app-creator:latest apps generate \
+./apphub-app-creator apps generate \
     --project-id="my-gcp-project" \
     --locations="us-central1" \
     --label-key="appid"
 ```
 
-This will:
-
-1. Search for all resources in `my-gcp-project` with the label key `appid`.
-2. For each unique value of the `appid` label key, it will create a new App Hub application.
-3. The services and workloads for each application will be populated from the resources that share the same label value.
-
-##### Generate applications based on label key and value
-
-To create App Hub applications for all resources in `my-gcp-project` that have the label key `appid` and value `app1`, you would run:
+#### 3. Match Specific Label Key and Value
+Group resources matching both a specific label key and value into a single application:
 
 ```shell
-docker run -it --rm ghcr.io/srinandan/apphub-app-creator:latest apps generate \
+./apphub-app-creator apps generate \
     --project-id="my-gcp-project" \
     --locations="us-central1" \
     --label-key="appid" \
     --label-value="app1"
 ```
 
-This will:
-
-1. Search for all resources in `my-gcp-project` with the label key `appid` and value `app1`.
-2. It will create a new App Hub application the services and workloads for each application will be populated from the resources that share the same label value.
-
-##### Generate applications from multiple locations
-
-To create App Hub applications for all resources in `my-gcp-project` that have the label key `appid` and deployed in multiple locations, you would run:
+#### 4. Discovered Across Multiple Locations
+Discover and associate resources across multiple regions into App Hub:
 
 ```shell
-docker run -it --rm ghcr.io/srinandan/apphub-app-creator:latest apps generate \
+./apphub-app-creator apps generate \
     --project-id="my-gcp-project" \
     --locations="us-central1" \
     --locations="us-east1" \
     --label-key="appid"
 ```
 
-This will:
-
-1. Search for all resources in `my-gcp-project` with the label key `appid` in the locations `us-central1` and `us-east1.
-2. For each unique value of the `appid` label key, it will create a new App Hub application.
-3. The services and workloads for each application will be populated from the resources that share the same label value.
-
-### Delete Command
-
-The `delete` command deletes one or more applications in a given set of locations. The `delete` command requires the following flags:
-
-* `--locations`: (Required) GCP location names to delete applications from (e.g. us-central1).
-* `--management-project`: (Required) The project where App Hub is managed.
-
-## Server Mode
-
-`apphub-app-creator` can also run as an HTTP server, which allows you to create applications by making API calls.
-
-### Running the server
-
-To start the server, run the following command:
+#### 5. Dry-Run / Preview (`--report-only`)
+Simulate discovery and print planned App Hub applications, services, and workloads without modifying GCP resources:
 
 ```shell
-apphub-app-creator server
+./apphub-app-creator apps generate \
+    --project-id="my-gcp-project" \
+    --locations="us-central1" \
+    --auto-detect=true \
+    --report-only=true
 ```
 
-By default, the server starts on port `8080`. You can specify a different port using the `--port` flag:
+#### 6. Apply Metadata Attributes (`--attributes`)
+Attach Criticality, Environment/Severity, and Contact Owner metadata defined in a JSON file:
 
 ```shell
-apphub-app-creator server --port=8081
+./apphub-app-creator apps generate \
+    --project-id="my-gcp-project" \
+    --locations="us-central1" \
+    --auto-detect=true \
+    --attributes="samples/attributes.json"
 ```
 
-### API Endpoints
+### `apps delete`
 
-#### Health Check
+Delete one or more applications across specified locations:
 
-*   **GET /**
+```shell
+./apphub-app-creator apps delete \
+    --management-project="my-apphub-host-project" \
+    --locations="us-central1" \
+    --locations="global" \
+    --app-name="my-app"
+```
 
-    Returns a `200 OK` status to indicate that the server is running.
+---
 
-#### Generate Applications
+## Server Mode & HTTP API
 
-*   **POST /generate**
+`apphub-app-creator` can run as an HTTP microservice daemon for programmatic integrations.
 
-    Creates App Hub applications based on the provided JSON payload.
+### Starting the Server
 
-    **Example Payload (`sample1.json`):**
+```shell
+./apphub-app-creator server --port=8080
+```
 
-    ```json
-    {
-        "selector": {
-            "autoDetect": true
-        },
-        "scope": {
-            "parent": "projects/xxxx",
-            "locations": [
-                "us-central1",
-                "global"
-            ],
-            "managementProject": "google-mpf-xxxx"
-        },
-        "action": {
-            "reportOnly": true
-        }
+### Endpoints
+
+#### `GET /`
+Health check endpoint. Returns `200 OK` with body `OK`.
+
+#### `POST /generate`
+Discovers resources and generates App Hub applications based on a JSON request payload.
+
+**Example Request:**
+```shell
+curl -X POST http://localhost:8080/generate \
+    -H "Content-Type: application/json" \
+    -d @samples/sample1.json
+```
+
+**Example Payload (`sample1.json`):**
+```json
+{
+  "selector": {
+    "autoDetect": true
+  },
+  "scope": {
+    "parent": "projects/my-gcp-project",
+    "locations": ["us-central1", "global"],
+    "managementProject": "my-apphub-host-project"
+  },
+  "action": {
+    "reportOnly": true
+  },
+  "options": {
+    "attributes": {
+      "criticality": { "type": "MISSION_CRITICAL" },
+      "environment": { "type": "PRODUCTION" },
+      "developerOwners": [{ "email": "dev@example.com", "displayName": "Dev Team" }]
     }
-    ```
+  }
+}
+```
 
-    **Example `curl` command:**
+---
 
-    ```shell
-    curl -X POST -H "Content-Type: application/json" -d @samples/sample1.json http://localhost:8080/generate
-    ```
+## Web UI (Frontend)
 
-## How do I verify the binary?
+The repository includes a modern Vue 3 web interface located in [`frontend/`](./frontend/) to interactively configure selectors, preview discovery results, and manage App Hub applications.
 
-All artifacts are signed by [cosign](https://github.com/sigstore/cosign). We recommend verifying any artifact before using them.
+### Running the Web UI Locally
 
-You can use the following public key to verify any `apphub-app-creator` binary with:
+1. Start the backend server:
+   ```shell
+   ./apphub-app-creator server --port=8080
+   ```
+
+2. Start the frontend development server:
+   ```shell
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+3. Open your browser at `http://localhost:5173`.
+
+---
+
+## Artifact Verification
+
+All release binaries and container images are cryptographically signed using [Cosign](https://github.com/sigstore/cosign).
+
+### Verify Binary
 
 ```sh
 cat cosign.pub
@@ -195,30 +237,28 @@ asYLL8Ko8vw+CvCcGEV7BuI5vJykMBQWlW3XfDoGtPLQ4oxhuCaK21h07w==
 cosign verify-blob --key=cosign.pub --signature apphub-app-creator_<platform>_<arch>.zip.sig apphub-app-creator_<platform>_<arch>.zip
 ```
 
-Where `platform` can be one of `Darwin`, `Linux` or `Windows` and arch (architecture) can be one of `arm64` or `x86_64`
+Where `<platform>` is `Darwin`, `Linux`, or `Windows` and `<arch>` is `arm64` or `x86_64`.
 
-## How do I verify the container?
-
-All images are signed by [cosign](https://github.com/sigstore/cosign). We recommend verifying any container before using them.
+### Verify Container
 
 ```sh
-cat cosign.pub
------BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEHHFDIsSzmNuYtsR1R0+nElNG3WuY
-asYLL8Ko8vw+CvCcGEV7BuI5vJykMBQWlW3XfDoGtPLQ4oxhuCaK21h07w==
------END PUBLIC KEY-----
-
 cosign verify --key=cosign.pub ghcr.io/srinandan/apphub-app-creator:latest
 ```
 
+---
+
 ## Contributing
 
-Please see [CONTRIBUTING.md](CONTRIBUTING.md) for information on how to contribute to this project.
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md) for contribution guidelines, architecture details, and development conventions.
+
+---
 
 ## License
 
 This project is licensed under the Apache 2.0 License - see the [LICENSE.txt](LICENSE.txt) file for details.
 
+---
+
 ## Support
 
-This is not an officially supported Google product
+This is not an officially supported Google product.

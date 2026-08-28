@@ -55,9 +55,8 @@ Discovery is powered by:
 │   ├── sample2.json                    # Label-based generation sample
 │   └── sample3.json                    # Tag-based generation sample
 ├── Dockerfile                          # Multi-stage container build with distroless non-root image
-├── .golangci.yml                       # golangci-lint configuration
 ├── .goreleaser.yml                     # GoReleaser configuration for release builds & signing
-├── go.mod                              # Root Go module (v1.24.4) with internal replace directives
+├── go.mod                              # Root Go module (v1.26.5) with internal replace directives
 ├── go.sum                              # Go module checksums
 └── CONTRIBUTING.md                     # Contribution guidelines and CLA details
 ```
@@ -66,7 +65,7 @@ Discovery is powered by:
 
 ## 3. Technology Stack & Dependencies
 
-- **Language**: Go `1.24.4`
+- **Language**: Go `1.26.5`
 - **CLI Framework**: [`github.com/spf13/cobra`](https://github.com/spf13/cobra)
 - **HTTP Routing & Middleware**: [`github.com/gorilla/mux`](https://github.com/gorilla/mux), [`github.com/rs/cors`](https://github.com/rs/cors)
 - **Logging**: Standard Library [`log/slog`](https://pkg.go.dev/log/slog) encapsulated in `internal/clilog`
@@ -103,7 +102,7 @@ The tool processes resources based on mutually exclusive selectors:
 ## 5. Development Workflow & Commands
 
 ### Prerequisites
-- Go `1.24.4+` installed locally.
+- Go `1.26.5+` installed locally.
 - Google Cloud SDK (`gcloud`) with Application Default Credentials (ADC):
   ```bash
   gcloud auth application-default login
@@ -122,12 +121,6 @@ go test -v ./...
 # Run unit tests with code coverage profiling
 go test -v -coverprofile=coverage.out ./...
 go tool cover -func=coverage.out
-```
-
-### Run Linter
-The repository enforces linting with `golangci-lint`. All checks must pass with zero issues before pushing:
-```bash
-golangci-lint run --timeout=4m
 ```
 
 ### Run HTTP Server Locally
@@ -225,7 +218,7 @@ The server exposes the following endpoints:
 
 ## 8. Rules for AI Agents
 
-1. **Verification & Zero Lint Failures**: Always run `golangci-lint run --timeout=4m`, `go test -v ./...`, and `go build ./...` after introducing changes. **Never push or commit changes until `golangci-lint` passes cleanly with zero errors/warnings.**
+1. **Verification**: Always run `go test -v ./...` and `go build ./...` after introducing changes to verify compilation and test suites.
 2. **Minimal Diff**: Implement only what was requested. Avoid unnecessary refactoring or adding unused configuration parameters.
 3. **No Hardcoded Credentials**: Do not hardcode project IDs, keys, or credentials. Always respect user-supplied flags/payloads and default ADC credentials.
 4. **Documentation**: If adding a new command flag or API parameter, update the relevant markdown files in `docs/` and sample JSON files in `samples/`.
