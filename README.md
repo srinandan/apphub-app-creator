@@ -1,7 +1,9 @@
 # apphub-app-creator
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/srinandan/apphub-app-creator)](https://goreportcard.com/report/github.com/srinandan/apphub-app-creator)
+[![CI](https://github.com/srinandan/apphub-app-creator/actions/workflows/ci.yml/badge.svg)](https://github.com/srinandan/apphub-app-creator/actions/workflows/ci.yml)
 [![GitHub release](https://img.shields.io/github/v/release/srinandan/apphub-app-creator)](https://github.com/srinandan/apphub-app-creator/releases)
+[![Go Reference](https://pkg.go.dev/badge/github.com/srinandan/apphub-app-creator.svg)](https://pkg.go.dev/github.com/srinandan/apphub-app-creator)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/srinandan/apphub-app-creator)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 `apphub-app-creator` is a command-line utility to generate [Google Cloud App Hub](https://cloud.google.com/app-hub/docs/overview) applications from [Cloud Asset Inventory (CAIS)](https://cloud.google.com/asset-inventory/docs/overview) asset searches.
