@@ -1,6 +1,6 @@
 module github.com/srinandan/apphub-app-creator
 
-go 1.24.4
+go 1.26.5
 
 require internal/clilog v1.0.0 // indirect
 

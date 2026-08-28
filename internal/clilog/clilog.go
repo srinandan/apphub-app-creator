@@ -31,5 +31,8 @@ func Init(opts *slog.HandlerOptions) {
 }
 
 func GetLogger() *slog.Logger {
+	if logger == nil {
+		Init(nil)
+	}
 	return logger
 }

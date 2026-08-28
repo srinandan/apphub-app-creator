@@ -537,7 +537,9 @@ func getAppHubClient() (appHubClient, error) {
 }
 
 func closeAppHubClient(apiclient appHubClient) {
-	apiclient.Close()
+	if apiclient != nil {
+		_ = apiclient.Close()
+	}
 }
 
 func fixResourceURI(resourceURI string, asset *assetpb.ResourceSearchResult) string {

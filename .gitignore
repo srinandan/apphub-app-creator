@@ -34,5 +34,13 @@ dist/
 !test/*.zip
 !cmd/apphub-app-creator*
 !internal/apphub-app-creator*
+!frontend/package.json
+!frontend/package-lock.json
 !.vscode/launch.json
 !.devcontainer/devcontainer.json
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vscode/
+

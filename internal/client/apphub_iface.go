@@ -22,9 +22,8 @@ import (
 	"github.com/googleapis/gax-go/v2"
 )
 
-// appHubClient is an interface that wraps the apphub.Client.
-
-type appHubClient interface {
+// AppHubClient is an interface that wraps the apphub.Client.
+type AppHubClient interface {
 	LookupDiscoveredService(ctx context.Context, req *apphubpb.LookupDiscoveredServiceRequest, opts ...gax.CallOption) (*apphubpb.LookupDiscoveredServiceResponse, error)
 	LookupDiscoveredWorkload(ctx context.Context, req *apphubpb.LookupDiscoveredWorkloadRequest, opts ...gax.CallOption) (*apphubpb.LookupDiscoveredWorkloadResponse, error)
 	GetApplication(ctx context.Context, req *apphubpb.GetApplicationRequest, opts ...gax.CallOption) (*apphubpb.Application, error)
@@ -41,3 +40,5 @@ type appHubClient interface {
 	DeleteApplication(ctx context.Context, req *apphubpb.DeleteApplicationRequest, opts ...gax.CallOption) (*apphub.DeleteApplicationOperation, error)
 	Close() error
 }
+
+type appHubClient = AppHubClient
