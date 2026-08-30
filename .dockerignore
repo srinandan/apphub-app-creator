@@ -1,0 +1,8 @@
+# Keep the Docker build context small and reproducible: dependencies and build
+# outputs are regenerated inside the image, never copied from the host.
+.git
+**/node_modules
+frontend/dist
+internal/cmd/webdist
+*.out
+apphub-app-creator

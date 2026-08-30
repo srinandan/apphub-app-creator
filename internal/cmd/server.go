@@ -43,8 +43,12 @@ var ServerCmd = &cobra.Command{
 		logger := clilog.GetLogger()
 
 		r := mux.NewRouter()
-		r.HandleFunc("/", healthHandler).Methods("GET")
+		r.HandleFunc("/healthz", healthHandler).Methods("GET")
 		r.HandleFunc("/generate", generateHandler).Methods("POST")
+		// registerUI owns the root path: a liveness endpoint by default, or the
+		// embedded web UI when the binary is built with the "embedui" tag. It is
+		// registered last so its catch-all never shadows the API routes above.
+		registerUI(r)
 
 		// Create a new CORS handler with specific options.
 		corsHandler := cors.New(cors.Options{

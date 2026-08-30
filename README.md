@@ -160,8 +160,11 @@ Delete one or more applications across specified locations:
 
 ### Endpoints
 
+#### `GET /healthz`
+Liveness endpoint. Returns `200 OK` with body `OK`.
+
 #### `GET /`
-Health check endpoint. Returns `200 OK` with body `OK`.
+In the container image (built with the `embedui` tag) this serves the embedded web UI. In the plain CLI binary, where no UI is embedded, `/` is a health endpoint that returns `200 OK` with body `OK`.
 
 #### `POST /generate`
 Discovers resources and generates App Hub applications based on a JSON request payload.
@@ -218,6 +221,16 @@ The repository includes a modern Vue 3 web interface located in [`frontend/`](./
    ```
 
 3. Open your browser at `http://localhost:5173`.
+
+### Running the Bundled UI (Container Image)
+
+The published container image embeds the production (minified) build of the UI and serves it directly from the server — no separate frontend deployment is required:
+
+```shell
+docker run -ti --rm -p 8080:8080 ghcr.io/srinandan/apphub-app-creator:latest server --port=8080
+```
+
+Then open `http://localhost:8080`. The UI calls the API from the same origin (`/generate`), and `/healthz` provides a liveness check. Live discovery still requires Google Cloud credentials (Application Default Credentials) available to the container.
 
 ---
 
