@@ -68,7 +68,6 @@ var KUBERNETES_ASSETS = []string{
 	"k8s.io/Service",
 	"gateway.networking.k8s.io/Gateway",
 	"networking.k8s.io/Ingress",
-	"networking.istio.io/VirtualService",
 }
 
 var WORKLOADS = []string{
