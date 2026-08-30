@@ -17,7 +17,7 @@ package client
 import (
 	"context"
 	"fmt"
-	"internal/clilog"
+	"log/slog"
 	"slices"
 	"strings"
 
@@ -112,7 +112,7 @@ func searchAssets(parent, labelKey, labelValue, tagKey, tagValue, contains strin
 	var searchAssetTypes []string
 	var queryParts []string
 
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 	// Initialize the Asset Service client
 	client, err := asset.NewClient(ctx)
 	if err != nil {
@@ -197,7 +197,7 @@ func searchKubernetes(parent string, locations []string) ([]*assetpb.ResourceSea
 	var searchAssetTypes []string
 	var queryParts []string
 
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 	// Initialize the Asset Service client
 	client, err := asset.NewClient(ctx)
 	if err != nil {
@@ -262,7 +262,7 @@ func searchKubernetesApps(parent string, locations []string) ([]*assetpb.Resourc
 	var searchAssetTypes []string
 	var queryParts []string
 
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 	// Initialize the Asset Service client
 	client, err := asset.NewClient(ctx)
 	if err != nil {
@@ -327,7 +327,7 @@ func searchProject(parent string, projectIds, locations []string, assetTypesData
 	var searchAssetTypes []string
 	var queryParts []string
 
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 	// Initialize the Asset Service client
 	client, err := asset.NewClient(ctx)
 	if err != nil {

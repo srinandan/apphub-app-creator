@@ -2,8 +2,6 @@ module client
 
 go 1.26.5
 
-replace internal/clilog => ../clilog
-
 require (
 	cloud.google.com/go/apphub v1.1.0
 	cloud.google.com/go/asset v1.28.0
@@ -17,7 +15,6 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20260715232425-e75dac1f907d
 	google.golang.org/grpc v1.83.2
 	google.golang.org/protobuf v1.36.12
-	internal/clilog v0.0.0-00010101000000-000000000000
 )
 
 require (

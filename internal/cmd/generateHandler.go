@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"internal/client"
-	"internal/clilog"
+	"log/slog"
 	"net/http"
 	"strings"
 )
@@ -187,7 +187,7 @@ func validateKeyValue(kv KeyValue) error {
 }
 
 func generateHandler(w http.ResponseWriter, r *http.Request) {
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 
 	var generateReq GenerateRequest
 	var generatedApplications map[string]client.Application
@@ -314,7 +314,7 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	// Encode the payload directly to the response writer
 	response, err := json.Marshal(payload)
 	if err != nil {
-		clilog.GetLogger().Error("Failed to marshal JSON response", "error", err)
+		slog.Default().Error("Failed to marshal JSON response", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(`{"error":"Failed to marshal JSON response"}`)) // fallback
 		return

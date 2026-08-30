@@ -17,7 +17,8 @@ package client
 import (
 	"context"
 	"fmt"
-	"internal/clilog"
+	"io"
+	"log/slog"
 	"os"
 	"testing"
 
@@ -28,7 +29,8 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	clilog.Init(nil)
+	// Keep test output clean by discarding logs from the code under test.
+	slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	os.Exit(m.Run())
 }
 

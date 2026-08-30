@@ -19,7 +19,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"internal/clilog"
+	"log/slog"
 	"strings"
 	"sync"
 
@@ -149,7 +149,7 @@ type Application struct {
 func GenerateAppsAssetInventory(parent, managementProject, labelKey, labelValue, tagKey, tagValue,
 	contains string, locations []string, attributesData, assetTypesData []byte, reportOnly bool,
 ) (map[string]Application, error) {
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 	var appLocation string
 	generatedApplications := map[string]Application{}
 
@@ -189,7 +189,7 @@ func GenerateAppsAssetInventory(parent, managementProject, labelKey, labelValue,
 func GenerateAppsCloudLogging(projectID, managementProject, logLabelKey, logLabelValue string,
 	locations []string, attributesData []byte, reportOnly bool,
 ) (map[string]Application, error) {
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 	var appLocation string
 	generatedApplications := map[string]Application{}
 	var generatedApp Application
@@ -287,7 +287,7 @@ func GenerateAppsCloudLogging(projectID, managementProject, logLabelKey, logLabe
 }
 
 func DeleteAllApps(managementProject string, locations []string) error {
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 	ctx := context.Background()
 	apphubClient, err := getAppHubClientFunc()
 	if err != nil {
@@ -329,7 +329,7 @@ func DeleteAllApps(managementProject string, locations []string) error {
 func GenerateAppsPerNamespace(parent, managementProject string, locations []string,
 	attributesData []byte, reportOnly bool,
 ) (map[string]Application, error) {
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 	var appLocation string
 	generatedApplications := map[string]Application{}
 
@@ -369,7 +369,7 @@ func GenerateAppsPerNamespace(parent, managementProject string, locations []stri
 func GenerateKubernetesApps(parent, managementProject string, locations []string, attributesData []byte,
 	reportOnly bool,
 ) (map[string]Application, error) {
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 	var appLocation string
 	generatedApplications := map[string]Application{}
 
@@ -409,7 +409,7 @@ func GenerateKubernetesApps(parent, managementProject string, locations []string
 func GenerateFromAll(parent, managementProject string, locations []string, attributesData []byte,
 	reportOnly bool,
 ) (map[string]Application, error) {
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 	var appLocation string
 	generatedApplications := map[string]Application{}
 
@@ -470,7 +470,7 @@ func GenerateFromAll(parent, managementProject string, locations []string, attri
 func GenerateFromProject(parent, managementProject, appName string, projectIds, locations []string, attributesData,
 	assetTypesData []byte, reportOnly bool,
 ) (map[string]Application, error) {
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 	var appLocation string
 
 	var assets []*assetpb.ResourceSearchResult
@@ -510,7 +510,7 @@ func GenerateFromProject(parent, managementProject, appName string, projectIds, 
 }
 
 func DeleteApp(managementProject, name string, locations []string) error {
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 	apphubClient, err := getAppHubClientFunc()
 	if err != nil {
 		return fmt.Errorf("error getting apphub client: %w", err)
@@ -532,7 +532,7 @@ func processAssets(assets []*assetpb.ResourceSearchResult, apphubClient appHubCl
 	attributesData []byte, reportOnly bool,
 	getAppNameFunc func(asset *assetpb.ResourceSearchResult) string,
 ) (map[string]Application, error) {
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 	generatedApplications := map[string]Application{}
 	var generatedApp Application
 
@@ -615,7 +615,7 @@ func processAssets(assets []*assetpb.ResourceSearchResult, apphubClient appHubCl
 }
 
 func getAppName(labelKey, tagKey, contains, labelValue, tagValue string, asset *assetpb.ResourceSearchResult) string {
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 	if labelValue != "" && labelValue != "*" {
 		return labelValue
 	} else if tagValue != "" && tagValue != "*" {

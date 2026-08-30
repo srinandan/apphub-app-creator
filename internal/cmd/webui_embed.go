@@ -18,8 +18,8 @@ package cmd
 
 import (
 	"embed"
-	"internal/clilog"
 	"io/fs"
+	"log/slog"
 	"net/http"
 	"path"
 	"strings"
@@ -38,7 +38,7 @@ var webDistFS embed.FS
 // that don't map to a real asset fall back to index.html so client-side routing
 // and deep links resolve.
 func registerUI(r *mux.Router) {
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 
 	sub, err := fs.Sub(webDistFS, "webdist")
 	if err != nil {

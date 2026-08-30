@@ -35,9 +35,6 @@ Discovery is powered by:
 │   │   ├── trace.go                    # Cloud Trace query utilities
 │   │   ├── go.mod                      # Internal module definition
 │   │   └── *_test.go                   # Unit tests with mock clients and table-driven cases
-│   ├── clilog/                         # Centralized structured logging wrapper
-│   │   ├── clilog.go                   # slog.Logger initialization and singleton provider
-│   │   └── go.mod                      # Internal module definition
 │   └── cmd/                            # Cobra command tree & HTTP server handlers
 │       ├── root.go                     # Root cobra command, global flags (--log-level, --disable-check)
 │       ├── cmd.go                      # `apps` command group definition and shared flags (--parent, --locations, etc.)
@@ -70,7 +67,7 @@ Discovery is powered by:
 - **Language**: Go `1.26.5`
 - **CLI Framework**: [`github.com/spf13/cobra`](https://github.com/spf13/cobra)
 - **HTTP Routing & Middleware**: [`github.com/gorilla/mux`](https://github.com/gorilla/mux), [`github.com/rs/cors`](https://github.com/rs/cors)
-- **Logging**: Standard Library [`log/slog`](https://pkg.go.dev/log/slog) encapsulated in `internal/clilog`
+- **Logging**: Standard Library [`log/slog`](https://pkg.go.dev/log/slog), configured once in `root.go` (via `slog.SetDefault`) and used through `slog.Default()` in each package
 - **Google Cloud SDKs**:
   - `cloud.google.com/go/apphub/apiv1`
   - `cloud.google.com/go/asset/apiv1`
@@ -149,7 +146,6 @@ When making modifications or adding features, adhere to the following convention
 
 ### 1. Module Structure & Internal Packages
 - Root `go.mod` uses `replace` directives for local submodules:
-  - `internal/clilog`
   - `internal/client`
   - `internal/cmd`
 - Keep dependencies lean. Prefer Go standard library over third-party packages whenever possible.
@@ -160,13 +156,16 @@ When making modifications or adding features, adhere to the following convention
 - In HTTP handlers, return well-structured JSON error responses (`ErrorResponse{Error: "..."}`) with appropriate HTTP status codes (400 for bad input, 500 for internal errors).
 
 ### 3. Structured Logging
-- Use `internal/clilog`'s structured logger:
+- Use the standard library `log/slog` default logger. `root.go` configures it once
+  (`slog.SetDefault`) from the `--log-level` flag; packages log through `slog.Default()`:
   ```go
-  logger := clilog.GetLogger()
+  logger := slog.Default()
   logger.Info("Discovered resource", "uri", uri, "location", location)
   logger.Error("Failed to lookup App Hub workload", "error", err)
   ```
 - Respect configured log levels (`info`, `warn`, `error`, `off`).
+- Tests set a discarding default (`slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, nil)))`,
+  typically in `TestMain`) to keep test output clean.
 
 ### 4. Unit Testing & Fakes
 - Write table-driven tests (`*_test.go`) alongside the source code.

@@ -17,8 +17,8 @@ package client
 import (
 	"context"
 	"fmt"
-	"internal/clilog"
 	"io"
+	"log/slog"
 
 	trace "cloud.google.com/go/trace/apiv1"
 	"cloud.google.com/go/trace/apiv1/tracepb"
@@ -35,7 +35,7 @@ func queryTracesByLabel(w io.Writer, projectID, filter string) error {
 
 	ctx := context.Background()
 
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 
 	// 1. Create a new Cloud Trace client.
 	// This will use Application Default Credentials to authenticate.

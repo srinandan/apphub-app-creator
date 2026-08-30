@@ -17,7 +17,7 @@ package client
 import (
 	"context"
 	"fmt"
-	"internal/clilog"
+	"log/slog"
 	"regexp"
 	"strings"
 
@@ -38,7 +38,7 @@ var sqlInstanceProjectRE = regexp.MustCompile(`(projects/)([^/]+)(/instances/)`)
 // The DiscoveredService/Workload represents an existing GCP resource (like a Cloud Run service) that App Hub is aware of.
 func lookupDiscoveredServiceOrWorkload(apiclient appHubClient, projectID, location, resourceURI, appHubType string, asset *assetpb.ResourceSearchResult) (string, error) {
 	ctx := context.Background()
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 
 	parent := fmt.Sprintf("projects/%s/locations/%s", projectID, location)
 
@@ -113,7 +113,7 @@ func lookupDiscoveredServiceOrWorkload(apiclient appHubClient, projectID, locati
 func getOrCreateAppHubApplication(apiclient appHubClient, projectID, location, appID string, data []byte) (*apphubpb.Application, error) {
 	ctx := context.Background()
 
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 
 	var appScope apphubpb.Scope_Type
 
@@ -189,7 +189,7 @@ func getOrCreateAppHubApplication(apiclient appHubClient, projectID, location, a
 func registerServiceWithApplication(apiclient appHubClient, projectID, location, appID, discoveredName, displayName, appHubType string, data []byte) error {
 	ctx := context.Background()
 
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 
 	// Determine the Service Parent (The Application Path)
 	// Parent format: projects/{project}/locations/{location}/applications/{application_id}
@@ -348,7 +348,7 @@ func removeAllServices(apiclient appHubClient, projectID, location, appID string
 
 	// Use context.Background() as the base context
 	ctx := context.Background()
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 
 	// Parent format: projects/{project}/locations/{location}/applications/{application_id}
 	parent := fmt.Sprintf("projects/%s/locations/%s/applications/%s", projectID, location, appID)
@@ -416,7 +416,7 @@ func removeAllWorkloads(apiclient appHubClient, projectID, location, appID strin
 
 	// Use context.Background() as the base context
 	ctx := context.Background()
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 
 	// Parent format: projects/{project}/locations/{location}/applications/{application_id}
 	parent := fmt.Sprintf("projects/%s/locations/%s/applications/%s", projectID, location, appID)
@@ -483,7 +483,7 @@ func deleteApp(apiclient appHubClient, projectID, location, appID string) error 
 
 	ctx := context.Background()
 
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 
 	logger.Info("Removing all services from application", "app-name", appID)
 	err = removeAllServices(apiclient, projectID, location, appID)

@@ -17,7 +17,7 @@ package client
 import (
 	"context"
 	"fmt"
-	"internal/clilog"
+	"log/slog"
 	"strings"
 
 	"cloud.google.com/go/logging"
@@ -41,7 +41,7 @@ const k8s_deployment = "AND labels.\"logging.gke.io/top_level_controller_type\"=
 
 func filterLogs(projectID, labelKey, labelValue string, locations []string) (map[string]logAsset, error) {
 	ctx := context.Background()
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 
 	assets := make(map[string]logAsset)
 

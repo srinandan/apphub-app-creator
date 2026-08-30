@@ -18,15 +18,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"internal/clilog"
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/spf13/cobra"
 )
-
-var clilogger = clilog.GetLogger()
 
 // RootCmd to manage apphub-app-creator
 var RootCmd = &cobra.Command{
@@ -44,21 +42,18 @@ var RootCmd = &cobra.Command{
 		case "error":
 			level = slog.LevelError
 		case "off":
-			level = -1
+			// No output; handled below.
 		default:
 			return fmt.Errorf("invalid log level: %s", logLevel)
 		}
 
 		if logLevel == "off" {
-			clilog.Init(nil)
+			slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, nil)))
 		} else {
-			clilog.Init(&slog.HandlerOptions{
-				AddSource: false,
-				Level:     level,
-			})
+			slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: level})))
 		}
 
-		logger := clilog.GetLogger()
+		logger := slog.Default()
 		if !disableCheck {
 			latestVersion, _ := getLatestVersion()
 			if cmd.Version == "" {
@@ -75,7 +70,7 @@ var RootCmd = &cobra.Command{
 
 func Execute() {
 	if err := RootCmd.Execute(); err != nil {
-		clilogger.Error("Unable to execute ", "error", err.Error())
+		slog.Default().Error("Unable to execute ", "error", err.Error())
 	}
 }
 
@@ -103,7 +98,7 @@ func GetRootCmd() *cobra.Command {
 func getLatestVersion() (version string, err error) {
 	var req *http.Request
 	const endpoint = "https://api.github.com/repos/srinandan/apphub-app-creator/releases/latest"
-	logger := clilog.GetLogger()
+	logger := slog.Default()
 
 	client := &http.Client{}
 	contentType := "application/json"

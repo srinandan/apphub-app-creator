@@ -29,17 +29,17 @@ import (
 
 // mockAppHubClient is a mock of the App Hub client.
 type mockAppHubClient struct {
-	lookupDiscoveredServiceFunc   func(ctx context.Context, req *apphubpb.LookupDiscoveredServiceRequest, opts ...gax.CallOption) (*apphubpb.LookupDiscoveredServiceResponse, error)
-	lookupDiscoveredWorkloadFunc  func(ctx context.Context, req *apphubpb.LookupDiscoveredWorkloadRequest, opts ...gax.CallOption) (*apphubpb.LookupDiscoveredWorkloadResponse, error)
-	getApplicationFunc            func(ctx context.Context, req *apphubpb.GetApplicationRequest, opts ...gax.CallOption) (*apphubpb.Application, error)
-	createApplicationFunc         func(ctx context.Context, req *apphubpb.CreateApplicationRequest, opts ...gax.CallOption) (*apphub.CreateApplicationOperation, error)
-	createServiceFunc             func(ctx context.Context, req *apphubpb.CreateServiceRequest, opts ...gax.CallOption) (*apphub.CreateServiceOperation, error)
-	createWorkloadFunc            func(ctx context.Context, req *apphubpb.CreateWorkloadRequest, opts ...gax.CallOption) (*apphub.CreateWorkloadOperation, error)
-	deleteApplicationFunc         func(ctx context.Context, req *apphubpb.DeleteApplicationRequest, opts ...gax.CallOption) (*apphub.DeleteApplicationOperation, error)
-	deleteServiceFunc             func(ctx context.Context, req *apphubpb.DeleteServiceRequest, opts ...gax.CallOption) (*apphub.DeleteServiceOperation, error)
-	deleteWorkloadFunc            func(ctx context.Context, req *apphubpb.DeleteWorkloadRequest, opts ...gax.CallOption) (*apphub.DeleteWorkloadOperation, error)
-	listDiscoveredServicesFunc    func(ctx context.Context, req *apphubpb.ListDiscoveredServicesRequest, opts ...gax.CallOption) *apphub.DiscoveredServiceIterator
-	listDiscoveredWorkloadsFunc   func(ctx context.Context, req *apphubpb.ListDiscoveredWorkloadsRequest, opts ...gax.CallOption) *apphub.DiscoveredWorkloadIterator
+	lookupDiscoveredServiceFunc  func(ctx context.Context, req *apphubpb.LookupDiscoveredServiceRequest, opts ...gax.CallOption) (*apphubpb.LookupDiscoveredServiceResponse, error)
+	lookupDiscoveredWorkloadFunc func(ctx context.Context, req *apphubpb.LookupDiscoveredWorkloadRequest, opts ...gax.CallOption) (*apphubpb.LookupDiscoveredWorkloadResponse, error)
+	getApplicationFunc           func(ctx context.Context, req *apphubpb.GetApplicationRequest, opts ...gax.CallOption) (*apphubpb.Application, error)
+	createApplicationFunc        func(ctx context.Context, req *apphubpb.CreateApplicationRequest, opts ...gax.CallOption) (*apphub.CreateApplicationOperation, error)
+	createServiceFunc            func(ctx context.Context, req *apphubpb.CreateServiceRequest, opts ...gax.CallOption) (*apphub.CreateServiceOperation, error)
+	createWorkloadFunc           func(ctx context.Context, req *apphubpb.CreateWorkloadRequest, opts ...gax.CallOption) (*apphub.CreateWorkloadOperation, error)
+	deleteApplicationFunc        func(ctx context.Context, req *apphubpb.DeleteApplicationRequest, opts ...gax.CallOption) (*apphub.DeleteApplicationOperation, error)
+	deleteServiceFunc            func(ctx context.Context, req *apphubpb.DeleteServiceRequest, opts ...gax.CallOption) (*apphub.DeleteServiceOperation, error)
+	deleteWorkloadFunc           func(ctx context.Context, req *apphubpb.DeleteWorkloadRequest, opts ...gax.CallOption) (*apphub.DeleteWorkloadOperation, error)
+	listDiscoveredServicesFunc   func(ctx context.Context, req *apphubpb.ListDiscoveredServicesRequest, opts ...gax.CallOption) *apphub.DiscoveredServiceIterator
+	listDiscoveredWorkloadsFunc  func(ctx context.Context, req *apphubpb.ListDiscoveredWorkloadsRequest, opts ...gax.CallOption) *apphub.DiscoveredWorkloadIterator
 }
 
 func (m *mockAppHubClient) LookupDiscoveredService(ctx context.Context, req *apphubpb.LookupDiscoveredServiceRequest, opts ...gax.CallOption) (*apphubpb.LookupDiscoveredServiceResponse, error) {

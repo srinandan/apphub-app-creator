@@ -18,7 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"internal/clilog"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -40,7 +40,7 @@ var ServerCmd = &cobra.Command{
 		// Deadline the server waits for in-flight requests to drain on shutdown.
 		const shutdownTimeout = 15 * time.Second
 
-		logger := clilog.GetLogger()
+		logger := slog.Default()
 
 		r := mux.NewRouter()
 		r.HandleFunc("/healthz", healthHandler).Methods("GET")

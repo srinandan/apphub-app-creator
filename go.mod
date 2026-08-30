@@ -2,10 +2,6 @@ module github.com/srinandan/apphub-app-creator
 
 go 1.26.5
 
-require internal/clilog v1.0.0 // indirect
-
-replace internal/clilog => ./internal/clilog
-
 require internal/client v1.0.0 // indirect
 
 replace internal/client => ./internal/client
