@@ -20,13 +20,14 @@ import (
 	"encoding/hex"
 	"fmt"
 	"internal/clilog"
-	"regexp"
 	"strings"
+	"sync"
 
 	apphubpb "cloud.google.com/go/apphub/apiv1/apphubpb"
 	assetpb "cloud.google.com/go/asset/apiv1/assetpb"
 	resourcemanager "cloud.google.com/go/resourcemanager/apiv3"
 	resourcemanagerpb "cloud.google.com/go/resourcemanager/apiv3/resourcemanagerpb"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/api/iterator"
 )
 
@@ -410,42 +411,38 @@ func GenerateFromAll(parent, managementProject string, locations []string, attri
 ) (map[string]Application, error) {
 	logger := clilog.GetLogger()
 	var appLocation string
-	var assets []*assetpb.ResourceSearchResult
 	generatedApplications := map[string]Application{}
 
-	logger.Info("Running CAIS Search with location and Filters")
-	labeledAssets, err := searchAssetsFunc(parent, "app*", "", "", "", "", locations, nil)
-	if err != nil {
+	logger.Info("Running CAIS Search (labels, tags and Kubernetes) with location and Filters")
+
+	// The three discovery searches are independent, so run them concurrently
+	// to reduce the overall latency of the auto-detect flow.
+	var labeledAssets, taggedAssets, kubernetesAssets []*assetpb.ResourceSearchResult
+	g := new(errgroup.Group)
+	g.Go(func() (err error) {
+		labeledAssets, err = searchAssetsFunc(parent, "app*", "", "", "", "", locations, nil)
+		return err
+	})
+	g.Go(func() (err error) {
+		taggedAssets, err = searchAssetsFunc(parent, "", "", "app*", "", "", locations, nil)
+		return err
+	})
+	g.Go(func() (err error) {
+		kubernetesAssets, err = searchKubernetesFunc(parent, locations)
+		return err
+	})
+	if err := g.Wait(); err != nil {
 		return generatedApplications, fmt.Errorf("error searching assets: %w", err)
 	}
 
 	logger.Info("Found assets that matched label app* to process", "count", len(labeledAssets))
-
-	if len(labeledAssets) > 0 {
-		assets = append(assets, labeledAssets...)
-	}
-
-	logger.Info("Running CAIS Search with location and Filters")
-	taggedAssets, err := searchAssetsFunc(parent, "", "", "app*", "", "", locations, nil)
-	if err != nil {
-		return generatedApplications, fmt.Errorf("error searching assets: %w", err)
-	}
-
-	logger.Info("Found assets that matched label app* to process", "count", len(taggedAssets))
-	if len(taggedAssets) > 0 {
-		assets = append(assets, taggedAssets...)
-	}
-
-	logger.Info("Running CAIS Search for Kubernetes labels")
-	kubernetesAssets, err := searchKubernetesFunc(parent, locations)
-	if err != nil {
-		return generatedApplications, fmt.Errorf("error searching assets: %w", err)
-	}
-
+	logger.Info("Found assets that matched tag app* to process", "count", len(taggedAssets))
 	logger.Info("Found assets that matched Kubernetes labels to process", "count", len(kubernetesAssets))
-	if len(kubernetesAssets) > 0 {
-		assets = append(assets, kubernetesAssets...)
-	}
+
+	assets := make([]*assetpb.ResourceSearchResult, 0, len(labeledAssets)+len(taggedAssets)+len(kubernetesAssets))
+	assets = append(assets, labeledAssets...)
+	assets = append(assets, taggedAssets...)
+	assets = append(assets, kubernetesAssets...)
 
 	if len(locations) > 1 {
 		appLocation = "global"
@@ -697,24 +694,43 @@ func getAppNameFromAsset(asset *assetpb.ResourceSearchResult) string {
 	return getProjectID(asset.Project, context.Background())
 }
 
+// projectIDCache memoizes resolved "projects/{number}" -> projectId lookups so
+// that a batch of assets belonging to the same project only triggers a single
+// Resource Manager API call instead of one (plus a fresh client) per asset.
+var (
+	projectIDCache   = map[string]string{}
+	projectIDCacheMu sync.Mutex
+)
+
 func getProjectID(project string, ctx context.Context) string {
-	if strings.HasPrefix(project, "projects/") {
-		getProjectReq := &resourcemanagerpb.GetProjectRequest{
-			Name: project,
-		}
-		projectsClient, err := resourcemanager.NewProjectsClient(ctx)
-		if err != nil {
-			return "unknown"
-		}
-		defer projectsClient.Close()
-		getProjectResp, err := projectsClient.GetProject(ctx, getProjectReq)
-		if err != nil {
-			return "unknown"
-		}
-		return getProjectResp.ProjectId
-	} else {
+	// If it is not a "projects/{number}" reference there is nothing to resolve.
+	if !strings.HasPrefix(project, "projects/") {
 		return project
 	}
+
+	projectIDCacheMu.Lock()
+	cached, ok := projectIDCache[project]
+	projectIDCacheMu.Unlock()
+	if ok {
+		return cached
+	}
+
+	projectsClient, err := resourcemanager.NewProjectsClient(ctx)
+	if err != nil {
+		return "unknown"
+	}
+	defer projectsClient.Close()
+
+	getProjectResp, err := projectsClient.GetProject(ctx, &resourcemanagerpb.GetProjectRequest{Name: project})
+	if err != nil {
+		return "unknown"
+	}
+
+	projectID := getProjectResp.ProjectId
+	projectIDCacheMu.Lock()
+	projectIDCache[project] = projectID
+	projectIDCacheMu.Unlock()
+	return projectID
 }
 
 // describeRegion fetches details for a specific GCP region using the compute API.
@@ -735,8 +751,8 @@ func describeRegion(regionName string) (string, error) {
 	return "", fmt.Errorf("region is not supported or not a region")
 }
 
+// isValidAppName reports whether s begins with a lowercase ASCII letter, as
+// required for App Hub application/service identifiers.
 func isValidAppName(s string) bool {
-	pattern := `^[a-z]`
-	isValid, _ := regexp.MatchString(pattern, s)
-	return isValid
+	return s != "" && s[0] >= 'a' && s[0] <= 'z'
 }

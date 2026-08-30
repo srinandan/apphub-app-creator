@@ -235,10 +235,7 @@ func generateHandler(w http.ResponseWriter, r *http.Request) {
 			attributesData,
 			generateReq.Action.ReportOnly)
 	} else if generateReq.Selector.LogLabel != nil {
-		logProject, _ := GetProjectID(parent)
-		if generateReq.Selector.LogLabel != nil && generateReq.Selector.LogLabel.Value == "" {
-			generateReq.Selector.LogLabel.Value = ""
-		}
+		logProject, _ := GetProjectID(generateReq.Scope.Parent)
 		generatedApplications, err = client.GenerateAppsCloudLogging(logProject,
 			generateReq.Scope.ManagementProject,
 			generateReq.Selector.LogLabel.Key,

@@ -30,6 +30,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// sqlInstanceProjectRE matches the "projects/{id}/instances/" segment of a Cloud
+// SQL resource URI so the project id can be rewritten to the project number.
+var sqlInstanceProjectRE = regexp.MustCompile(`(projects/)([^/]+)(/instances/)`)
+
 // lookupDiscoveredService finds a DiscoveredService or Workload resource in App Hub based on its underlying resource URI.
 // The DiscoveredService/Workload represents an existing GCP resource (like a Cloud Run service) that App Hub is aware of.
 func lookupDiscoveredServiceOrWorkload(apiclient appHubClient, projectID, location, resourceURI, appHubType string, asset *assetpb.ResourceSearchResult) (string, error) {
@@ -168,7 +172,7 @@ func getOrCreateAppHubApplication(apiclient appHubClient, projectID, location, a
 		return nil, fmt.Errorf("failed to start application creation: %w", err)
 	}
 
-	logger.Info("Application creation started (Operation: %s). Waiting for completion...", "op-name", op.Name())
+	logger.Info("Application creation started. Waiting for completion...", "op-name", op.Name())
 
 	// Wait function from the LRO client. This blocks until the operation is Done.
 	createdApp, err := op.Wait(ctx)
@@ -303,51 +307,40 @@ func registerServiceWithApplication(apiclient appHubClient, projectID, location,
 func isUnregistered(apiclient appHubClient, appHubType, projectID, location, discoveredName string) (bool, error) {
 
 	ctx := context.Background()
-	var parent, filter string
-	var count int
 
-	filter = fmt.Sprintf("name:%s", discoveredName)
+	parent := fmt.Sprintf("projects/%s/locations/%s", projectID, location)
+	filter := fmt.Sprintf("name:%s", discoveredName)
 
+	// We only need to know whether at least one matching resource exists, so we
+	// inspect a single page/entry and stop rather than draining the iterator.
 	if appHubType == "discoveredService" {
-		parent = fmt.Sprintf("projects/%s/locations/%s", projectID, location)
 		req := &apphubpb.ListDiscoveredServicesRequest{
 			Parent: parent,
 			Filter: filter,
 		}
 
-		it := apiclient.ListDiscoveredServices(ctx, req)
-		for {
-			_, err := it.Next()
-			if err == iterator.Done {
-				break
-			}
-			if err != nil {
-				return false, fmt.Errorf("failed to list discovered services: %w", err)
-			}
-			count++
+		_, err := apiclient.ListDiscoveredServices(ctx, req).Next()
+		if err == iterator.Done {
+			return false, nil
 		}
-
-		return count > 0, nil
-
-	} else {
-		parent = fmt.Sprintf("projects/%s/locations/%s", projectID, location)
-		req := &apphubpb.ListDiscoveredWorkloadsRequest{
-			Parent: parent,
-			Filter: filter,
+		if err != nil {
+			return false, fmt.Errorf("failed to list discovered services: %w", err)
 		}
-		it := apiclient.ListDiscoveredWorkloads(ctx, req)
-		for {
-			_, err := it.Next()
-			if err == iterator.Done {
-				break
-			}
-			if err != nil {
-				return false, fmt.Errorf("failed to list workloads: %w", err)
-			}
-			count++
-		}
-		return count > 0, nil
+		return true, nil
 	}
+
+	req := &apphubpb.ListDiscoveredWorkloadsRequest{
+		Parent: parent,
+		Filter: filter,
+	}
+	_, err := apiclient.ListDiscoveredWorkloads(ctx, req).Next()
+	if err == iterator.Done {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("failed to list workloads: %w", err)
+	}
+	return true, nil
 }
 
 func removeAllServices(apiclient appHubClient, projectID, location, appID string) error {
@@ -554,8 +547,7 @@ func fixResourceURI(resourceURI string, asset *assetpb.ResourceSearchResult) str
 		projectNumber := strings.Split(asset.Project, "/")[1]
 
 		// step 3 replace project id with project number
-		re := regexp.MustCompile(`(projects/)([^/]+)(/instances/)`)
-		resourceURI = re.ReplaceAllString(resourceURI, fmt.Sprintf("${1}%s${3}", projectNumber))
+		resourceURI = sqlInstanceProjectRE.ReplaceAllString(resourceURI, fmt.Sprintf("${1}%s${3}", projectNumber))
 	}
 	return resourceURI
 }

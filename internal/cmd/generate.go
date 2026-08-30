@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"internal/client"
 	"os"
-	"regexp"
 
 	"github.com/spf13/cobra"
 )
@@ -217,10 +216,10 @@ func GetGenAppExample(i int) string {
 	return genAppsCmdExamples[i]
 }
 
+// isValidAppName reports whether s begins with a lowercase ASCII letter, as
+// required for App Hub application identifiers.
 func isValidAppName(s string) bool {
-	pattern := `^[a-z]`
-	isValid, _ := regexp.MatchString(pattern, s)
-	return isValid
+	return s != "" && s[0] >= 'a' && s[0] <= 'z'
 }
 
 func init() {

@@ -16,8 +16,9 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"internal/clilog" //
+	"internal/clilog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -35,7 +36,9 @@ var ServerCmd = &cobra.Command{
 	Long:  "Starts a HTTP server for the App Hub Creator.",
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		cmd.SilenceUsage = true
-		var wait time.Duration
+
+		// Deadline the server waits for in-flight requests to drain on shutdown.
+		const shutdownTimeout = 15 * time.Second
 
 		logger := clilog.GetLogger()
 
@@ -48,7 +51,7 @@ var ServerCmd = &cobra.Command{
 			AllowedOrigins:   []string{"*"},
 			AllowCredentials: true,
 			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-			AllowedHeaders:   []string{"Content-Type, Authorization", "ApiKey", "User"},
+			AllowedHeaders:   []string{"Content-Type", "Authorization", "ApiKey", "User"},
 			Debug:            false,
 		})
 
@@ -67,7 +70,9 @@ var ServerCmd = &cobra.Command{
 		// Start the server
 		logger.Info("Starting server...", "address", addr)
 		go func() {
-			if err := srv.ListenAndServe(); err != nil {
+			// ListenAndServe always returns a non-nil error; ErrServerClosed is
+			// the expected result of a graceful Shutdown and must not be fatal.
+			if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				logger.Error("Error starting server", "error", err)
 				os.Exit(1)
 			}
@@ -82,7 +87,7 @@ var ServerCmd = &cobra.Command{
 		<-c
 
 		// Create a deadline to wait for.
-		ctx, cancel := context.WithTimeout(context.Background(), wait)
+		ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer cancel()
 		// Doesn't block if no connections, but will otherwise wait
 		// until the timeout deadline.

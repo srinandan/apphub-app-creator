@@ -64,8 +64,8 @@ var RootCmd = &cobra.Command{
 			if cmd.Version == "" {
 				logger.Debug("apphub-app-creator wasn't built with a valid Version tag.")
 			} else if latestVersion != "" && cmd.Version != latestVersion {
-				logger.Info("You are using %s, the latest version %s "+
-					"is available for download\n", cmd.Version, latestVersion)
+				logger.Info(fmt.Sprintf("You are using %s, the latest version %s is available for download",
+					cmd.Version, latestVersion))
 			}
 		}
 
