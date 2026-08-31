@@ -109,11 +109,12 @@ function handleSave() {
   gap: 8px;
 }
 .modal-title-wrap .icon {
-  color: #3b82f6;
+  color: var(--color-brand);
 }
 .modal-title-wrap h3 {
   font-size: 16px;
   font-weight: 600;
+  color: var(--text-primary);
 }
 
 .modal-desc {
@@ -121,12 +122,15 @@ function handleSave() {
   color: var(--text-muted);
   margin-bottom: 16px;
 }
-.modal-desc code {
-  color: #93c5fd;
-  background: var(--bg-app);
+.modal-desc code, .form-hint code {
+  color: var(--color-brand-text);
+  background: var(--bg-surface-elevated);
   padding: 2px 4px;
   border-radius: 4px;
   font-family: var(--font-mono);
+  border: 1px solid var(--border-color);
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 .test-result-box {
@@ -137,18 +141,20 @@ function handleSave() {
   border-radius: var(--radius-sm);
   font-size: 13px;
   margin-top: 12px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .test-result-box.success {
-  background-color: rgba(16, 185, 129, 0.12);
+  background-color: var(--color-success-bg);
   border: 1px solid var(--color-success);
-  color: #6ee7b7;
+  color: var(--color-success);
 }
 
 .test-result-box.error {
-  background-color: rgba(239, 68, 68, 0.12);
+  background-color: var(--color-error-bg);
   border: 1px solid var(--color-error);
-  color: #fca5a5;
+  color: var(--color-error);
 }
 
 .spinner-sm {

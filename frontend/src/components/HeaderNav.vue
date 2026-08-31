@@ -11,10 +11,18 @@ defineProps({
   isJsonModalOpen: {
     type: Boolean,
     default: false
+  },
+  activeTheme: {
+    type: String,
+    default: 'light'
+  },
+  themeSetting: {
+    type: String,
+    default: 'auto'
   }
 })
 
-const emit = defineEmits(['open-server-modal', 'open-json-modal', 'load-sample'])
+const emit = defineEmits(['open-server-modal', 'open-json-modal', 'load-sample', 'toggle-theme', 'set-theme'])
 
 const samples = [
   { id: 'sample1', name: 'Auto-Detect (Global + US)', desc: 'Discovers apps using standard well-known labels' },
@@ -42,6 +50,20 @@ const samples = [
       </div>
 
       <div class="header-actions">
+        <!-- Theme Toggle Button -->
+        <button 
+          class="btn btn-secondary btn-sm theme-toggle-btn"
+          @click="emit('toggle-theme')"
+          :title="activeTheme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode'"
+          id="btn-theme-toggle"
+          type="button"
+        >
+          <span class="icon" style="font-size: 16px;">
+            {{ activeTheme === 'dark' ? 'light_mode' : 'dark_mode' }}
+          </span>
+          <span class="theme-label">{{ activeTheme === 'dark' ? 'Light Mode' : 'Dark Mode' }}</span>
+        </button>
+
         <!-- Server Status Indicator -->
         <button 
           class="server-status-pill" 
@@ -49,6 +71,7 @@ const samples = [
           @click="emit('open-server-modal')"
           title="Click to configure backend server connection"
           id="btn-server-status"
+          type="button"
         >
           <span class="status-dot"></span>
           <span class="status-text">
@@ -59,7 +82,7 @@ const samples = [
 
         <!-- Sample Load Dropdown -->
         <div class="sample-dropdown-wrapper">
-          <button class="btn btn-secondary btn-sm" id="btn-samples-menu">
+          <button class="btn btn-secondary btn-sm" id="btn-samples-menu" type="button">
             <span class="icon">library_books</span>
             <span>Samples</span>
             <span class="icon" style="font-size: 16px;">arrow_drop_down</span>
@@ -70,6 +93,7 @@ const samples = [
               v-for="s in samples" 
               :key="s.id"
               class="dropdown-item"
+              type="button"
               @click="emit('load-sample', s.id)"
             >
               <div class="item-title">{{ s.name }}</div>
@@ -84,6 +108,7 @@ const samples = [
           @click="emit('open-json-modal')"
           title="Open raw JSON request editor"
           id="btn-open-json-modal"
+          type="button"
         >
           <span class="icon">data_object</span>
           <span>JSON Payload</span>
@@ -116,32 +141,41 @@ const samples = [
 }
 
 .header-container {
-  height: 68px;
+  min-height: 68px;
+  padding-top: 10px;
+  padding-bottom: 10px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .brand-area {
   display: flex;
   align-items: center;
   gap: 14px;
+  min-width: 0;
 }
 
 .logo-icon {
   width: 40px;
   height: 40px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  background: var(--color-brand-gradient);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px var(--color-brand-glow);
+  flex-shrink: 0;
 }
 .logo-icon .icon {
   font-size: 24px;
+}
+
+.brand-text {
+  min-width: 0;
 }
 
 .brand-title {
@@ -151,32 +185,39 @@ const samples = [
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .brand-title span {
-  color: #60a5fa;
-  font-weight: 500;
+  color: var(--color-brand-text);
+  font-weight: 600;
 }
 
 .version-tag {
-  background-color: rgba(59, 130, 246, 0.15);
-  color: #93c5fd;
+  background-color: var(--color-brand-subtle);
+  color: var(--color-brand-text);
   font-size: 11px;
   font-weight: 600;
   padding: 2px 6px;
   border-radius: 4px;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  border: 1px solid var(--color-brand-glow);
 }
 
 .brand-subtitle {
   font-size: 12px;
   color: var(--text-muted);
+  word-break: break-word;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+.theme-toggle-btn {
+  gap: 6px;
 }
 
 .server-status-pill {
@@ -184,12 +225,14 @@ const samples = [
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  background-color: var(--bg-app);
+  background-color: var(--bg-surface-elevated);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-full);
   font-size: 12px;
   cursor: pointer;
   transition: all var(--transition-fast);
+  min-width: 0;
+  max-width: 320px;
 }
 .server-status-pill:hover {
   border-color: var(--border-focus);
@@ -200,6 +243,7 @@ const samples = [
   height: 8px;
   border-radius: 50%;
   transition: background-color var(--transition-fast);
+  flex-shrink: 0;
 }
 
 .status-online .status-dot {
@@ -217,6 +261,7 @@ const samples = [
 
 .status-text {
   font-weight: 600;
+  white-space: nowrap;
 }
 .status-online .status-text { color: var(--color-success); }
 .status-offline .status-text { color: var(--color-error); }
@@ -228,6 +273,10 @@ const samples = [
   font-size: 11px;
   padding-left: 4px;
   border-left: 1px solid var(--border-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
 }
 
 /* Samples Dropdown */
@@ -241,7 +290,7 @@ const samples = [
   top: calc(100% + 8px);
   right: 0;
   width: 280px;
-  background-color: var(--bg-surface-elevated);
+  background-color: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
@@ -281,8 +330,8 @@ const samples = [
 
 .item-title {
   font-size: 13px;
-  font-weight: 500;
-  color: #93c5fd;
+  font-weight: 600;
+  color: var(--color-brand-text);
 }
 
 .item-desc {
@@ -297,7 +346,7 @@ const samples = [
 }
 
 @media (max-width: 900px) {
-  .brand-subtitle, .server-endpoint {
+  .brand-subtitle, .server-endpoint, .theme-label {
     display: none;
   }
 }

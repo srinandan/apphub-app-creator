@@ -502,7 +502,7 @@ function removeOwner(type, index) {
     <div class="attributes-toggle-area">
       <button 
         type="button" 
-        class="btn btn-ghost btn-sm"
+        class="attributes-toggle-btn"
         @click="showAdvancedAttributes = !showAdvancedAttributes"
         id="btn-toggle-attributes"
       >
@@ -557,11 +557,11 @@ function removeOwner(type, index) {
             class="chip"
           >
             <span class="icon" style="font-size: 14px;">code</span>
-            <span>{{ dev.displayName }} ({{ dev.email }})</span>
+            <span class="chip-text">{{ dev.displayName }} ({{ dev.email }})</span>
             <button type="button" class="chip-remove" @click="removeOwner('dev', idx)">×</button>
           </span>
         </div>
-        <div class="input-with-btn" style="margin-top: 6px;">
+        <div class="owner-inputs-row" style="margin-top: 6px;">
           <input 
             class="form-input form-input-sm" 
             v-model="newDevOwner.email" 
@@ -573,6 +573,68 @@ function removeOwner(type, index) {
             placeholder="Display Name"
           />
           <button type="button" class="btn btn-secondary btn-sm" @click="addOwner('dev')">
+            Add
+          </button>
+        </div>
+      </div>
+
+      <!-- Operator Owners -->
+      <div class="owners-block" v-if="modelValue.options?.attributes">
+        <div class="owners-title">Operator / SRE Owners</div>
+        <div class="chips-container" v-if="modelValue.options.attributes.operatorOwners?.length">
+          <span 
+            v-for="(op, idx) in modelValue.options.attributes.operatorOwners" 
+            :key="idx" 
+            class="chip"
+          >
+            <span class="icon" style="font-size: 14px;">support_agent</span>
+            <span class="chip-text">{{ op.displayName }} ({{ op.email }})</span>
+            <button type="button" class="chip-remove" @click="removeOwner('op', idx)">×</button>
+          </span>
+        </div>
+        <div class="owner-inputs-row" style="margin-top: 6px;">
+          <input 
+            class="form-input form-input-sm" 
+            v-model="newOpOwner.email" 
+            placeholder="Email (e.g. sre-team@example.com)"
+          />
+          <input 
+            class="form-input form-input-sm" 
+            v-model="newOpOwner.displayName" 
+            placeholder="Display Name"
+          />
+          <button type="button" class="btn btn-secondary btn-sm" @click="addOwner('op')">
+            Add
+          </button>
+        </div>
+      </div>
+
+      <!-- Business Owners -->
+      <div class="owners-block" v-if="modelValue.options?.attributes">
+        <div class="owners-title">Business / Product Owners</div>
+        <div class="chips-container" v-if="modelValue.options.attributes.businessOwners?.length">
+          <span 
+            v-for="(biz, idx) in modelValue.options.attributes.businessOwners" 
+            :key="idx" 
+            class="chip"
+          >
+            <span class="icon" style="font-size: 14px;">business_center</span>
+            <span class="chip-text">{{ biz.displayName }} ({{ biz.email }})</span>
+            <button type="button" class="chip-remove" @click="removeOwner('biz', idx)">×</button>
+          </span>
+        </div>
+        <div class="owner-inputs-row" style="margin-top: 6px;">
+          <input 
+            class="form-input form-input-sm" 
+            v-model="newBizOwner.email" 
+            placeholder="Email (e.g. pm@example.com)"
+          />
+          <input 
+            class="form-input form-input-sm" 
+            v-model="newBizOwner.displayName" 
+            placeholder="Display Name"
+          />
+          <button type="button" class="btn btn-secondary btn-sm" @click="addOwner('biz')">
             Add
           </button>
         </div>
@@ -607,13 +669,13 @@ function removeOwner(type, index) {
   gap: 8px;
   font-size: 15px;
   font-weight: 600;
-  color: #60a5fa;
+  color: var(--color-brand-text);
   margin-bottom: 14px;
 }
 
 .tabs-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
   gap: 8px;
   margin-bottom: 16px;
 }
@@ -624,7 +686,7 @@ function removeOwner(type, index) {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 12px 8px;
+  padding: 10px 6px;
   background-color: var(--bg-surface-elevated);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -634,31 +696,41 @@ function removeOwner(type, index) {
   font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-fast);
+  min-width: 0;
 }
 
 .tab-btn:hover {
   background-color: var(--bg-surface-hover);
   color: var(--text-primary);
-  border-color: #3b82f6;
+  border-color: var(--color-brand);
 }
 
 .tab-btn.active {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: #3b82f6;
-  color: #60a5fa;
-  box-shadow: 0 0 12px rgba(59, 130, 246, 0.2);
+  background: var(--color-brand-subtle);
+  border-color: var(--color-brand);
+  color: var(--color-brand-text);
+  box-shadow: 0 0 10px var(--color-brand-glow);
 }
 
 .tab-btn .icon {
   font-size: 22px;
 }
 
+.tab-label {
+  text-align: center;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+  font-size: 11px;
+}
+
 .tab-pane-box {
-  background-color: var(--bg-app);
+  background-color: var(--bg-surface-elevated);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 16px;
   margin-bottom: 16px;
+  min-width: 0;
 }
 
 .pane-header {
@@ -669,7 +741,7 @@ function removeOwner(type, index) {
 }
 
 .pane-header .icon {
-  color: #3b82f6;
+  color: var(--color-brand);
   font-size: 24px;
 }
 
@@ -683,26 +755,33 @@ function removeOwner(type, index) {
   font-size: 12px;
   color: var(--text-muted);
   margin-top: 2px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .pane-desc code {
-  background-color: var(--bg-surface-elevated);
+  background-color: var(--bg-surface);
   padding: 2px 5px;
   border-radius: 4px;
-  color: #93c5fd;
+  color: var(--color-brand-text);
   font-family: var(--font-mono);
+  border: 1px solid var(--border-color);
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 .grid-2col {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+  min-width: 0;
 }
 
 .scope-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+  min-width: 0;
 }
 
 .chips-container {
@@ -710,6 +789,7 @@ function removeOwner(type, index) {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 4px;
+  max-width: 100%;
 }
 
 .location-chip {
@@ -725,17 +805,18 @@ function removeOwner(type, index) {
   font-family: var(--font-mono);
   cursor: pointer;
   transition: all var(--transition-fast);
+  max-width: 100%;
 }
 
 .location-chip:hover {
-  border-color: #60a5fa;
+  border-color: var(--color-brand);
   color: var(--text-primary);
 }
 
 .location-chip.selected {
-  background-color: rgba(59, 130, 246, 0.2);
-  border-color: #3b82f6;
-  color: #93c5fd;
+  background-color: var(--color-brand-subtle);
+  border-color: var(--color-brand);
+  color: var(--color-brand-text);
   font-weight: 600;
 }
 
@@ -744,11 +825,21 @@ function removeOwner(type, index) {
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  background-color: var(--bg-surface-elevated);
+  background-color: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-full);
   font-size: 12px;
   color: var(--text-primary);
+  max-width: 100%;
+  min-width: 0;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+.chip-text {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 
 .chip-remove {
@@ -758,6 +849,7 @@ function removeOwner(type, index) {
   font-size: 14px;
   cursor: pointer;
   line-height: 1;
+  flex-shrink: 0;
 }
 .chip-remove:hover {
   color: var(--color-error);
@@ -765,6 +857,20 @@ function removeOwner(type, index) {
 
 .input-with-btn {
   display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.input-with-btn .form-input {
+  flex: 1;
+  min-width: 160px;
+}
+
+.owner-inputs-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
 }
@@ -775,18 +881,25 @@ function removeOwner(type, index) {
 }
 
 .action-card {
-  background-color: var(--bg-app);
+  background-color: var(--bg-surface-elevated);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 16px;
   margin-bottom: 16px;
+  min-width: 0;
 }
 
 .action-toggle-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.toggle-info {
+  min-width: 0;
+  flex: 1;
 }
 
 .toggle-title {
@@ -799,6 +912,8 @@ function removeOwner(type, index) {
   font-size: 12px;
   color: var(--text-muted);
   margin-top: 2px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 /* Switch Toggle */
@@ -820,7 +935,8 @@ function removeOwner(type, index) {
   position: absolute;
   cursor: pointer;
   inset: 0;
-  background-color: #374151;
+  background-color: var(--bg-surface-hover);
+  border: 1px solid var(--border-color);
   transition: .3s;
   border-radius: 24px;
 }
@@ -828,21 +944,23 @@ function removeOwner(type, index) {
 .slider:before {
   position: absolute;
   content: "";
-  height: 18px;
-  width: 18px;
+  height: 16px;
+  width: 16px;
   left: 3px;
   bottom: 3px;
-  background-color: white;
+  background-color: var(--text-secondary);
   transition: .3s;
   border-radius: 50%;
 }
 
 input:checked + .slider {
-  background-color: #3b82f6;
+  background-color: var(--color-brand);
+  border-color: var(--color-brand);
 }
 
 input:checked + .slider:before {
   transform: translateX(22px);
+  background-color: #ffffff;
 }
 
 .mode-badge-row {
@@ -853,21 +971,50 @@ input:checked + .slider:before {
 
 .attributes-toggle-area {
   margin: 12px 0;
+  width: 100%;
+}
+
+.attributes-toggle-btn {
+  white-space: normal;
+  text-align: left;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--color-brand-text);
+  background-color: var(--color-brand-subtle);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.attributes-toggle-btn:hover {
+  background-color: var(--bg-surface-hover);
 }
 
 .attributes-drawer {
-  background-color: var(--bg-app);
+  background-color: var(--bg-surface-elevated);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 16px;
   margin-bottom: 20px;
   animation: fadeIn 0.2s ease-out;
+  min-width: 0;
 }
 
 .owners-block {
   margin-top: 14px;
   padding-top: 12px;
   border-top: 1px solid var(--border-subtle);
+  min-width: 0;
 }
 
 .owners-title {
@@ -885,7 +1032,7 @@ input:checked + .slider:before {
 
 .submit-btn {
   width: 100%;
-  max-width: 320px;
+  max-width: 340px;
 }
 
 .spinner {
@@ -907,6 +1054,9 @@ input:checked + .slider:before {
   }
   .tabs-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .owner-inputs-row {
+    grid-template-columns: 1fr;
   }
   .submit-btn {
     max-width: 100%;

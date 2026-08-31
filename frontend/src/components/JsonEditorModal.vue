@@ -116,7 +116,7 @@ function handleExecute() {
 
 <style scoped>
 .modal-large {
-  max-width: 800px;
+  max-width: min(800px, calc(100vw - 32px));
 }
 
 .modal-title-wrap {
@@ -125,12 +125,13 @@ function handleExecute() {
   gap: 8px;
 }
 .modal-title-wrap .icon {
-  color: #3b82f6;
+  color: var(--color-brand);
   font-size: 22px;
 }
 .modal-title-wrap h3 {
   font-size: 16px;
   font-weight: 600;
+  color: var(--text-primary);
 }
 
 .close-modal-btn {
@@ -146,32 +147,35 @@ function handleExecute() {
 }
 .modal-desc code {
   font-family: var(--font-mono);
-  color: #93c5fd;
-  background-color: var(--bg-app);
+  color: var(--color-brand-text);
+  background-color: var(--bg-surface-elevated);
   padding: 2px 4px;
   border-radius: 4px;
+  border: 1px solid var(--border-color);
 }
 
 .json-error-alert {
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: rgba(239, 68, 68, 0.15);
+  background-color: var(--color-error-bg);
   border: 1px solid var(--color-error);
-  color: #fca5a5;
+  color: var(--color-error);
   padding: 8px 12px;
   border-radius: var(--radius-sm);
   font-size: 12px;
   margin-bottom: 12px;
+  word-break: break-word;
 }
 
 .json-textarea {
   width: 100%;
   font-size: 13px;
   line-height: 1.5;
-  background-color: #0b0f19;
-  border-color: var(--border-color);
-  color: #38bdf8;
+  background-color: var(--bg-code);
+  border: 1px solid var(--border-color);
+  color: var(--text-code);
   resize: vertical;
+  max-width: 100%;
 }
 </style>
