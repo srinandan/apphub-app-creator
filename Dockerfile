@@ -24,7 +24,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # Stage 2: build the statically-linked Go binary with the UI embedded.
-FROM golang:1.26.5 AS builder
+FROM golang:1.26.6 AS builder
 
 ARG TAG
 ARG COMMIT

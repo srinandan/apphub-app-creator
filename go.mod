@@ -1,6 +1,6 @@
 module github.com/srinandan/apphub-app-creator
 
-go 1.26.5
+go 1.26.6
 
 require internal/client v1.0.0 // indirect
 
