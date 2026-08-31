@@ -20,6 +20,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"strings"
 	"testing"
 
 	apphubpb "cloud.google.com/go/apphub/apiv1/apphubpb"
@@ -663,3 +664,152 @@ func TestDeleteApp(t *testing.T) {
 		t.Errorf("expected error when deleteAppFunc fails, got nil")
 	}
 }
+
+func TestGenerateAppsExcludesSystemNamespaces(t *testing.T) {
+	origSearchK8s := searchKubernetesFunc
+	origGetClient := getAppHubClientFunc
+	defer func() {
+		searchKubernetesFunc = origSearchK8s
+		getAppHubClientFunc = origGetClient
+	}()
+
+	mockClient := &mockAppHubClient{
+		lookupDiscoveredWorkloadFunc: func(ctx context.Context, req *apphubpb.LookupDiscoveredWorkloadRequest, opts ...gax.CallOption) (*apphubpb.LookupDiscoveredWorkloadResponse, error) {
+			return &apphubpb.LookupDiscoveredWorkloadResponse{
+				DiscoveredWorkload: &apphubpb.DiscoveredWorkload{
+					Name: "projects/mp/locations/us-central1/discoveredWorkloads/wl-user",
+				},
+			}, nil
+		},
+	}
+
+	getAppHubClientFunc = func() (appHubClient, error) {
+		return mockClient, nil
+	}
+
+	// Mix of a system namespace asset (kube-system) and a user namespace asset (default)
+	searchKubernetesFunc = func(parent string, locations []string) ([]*assetpb.ResourceSearchResult, error) {
+		return []*assetpb.ResourceSearchResult{
+			{
+				Name:                   "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/kube-system/apps/deployments/kube-dns",
+				AssetType:              "apps.k8s.io/Deployment",
+				Location:               "us-central1",
+				ParentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/kube-system",
+			},
+			{
+				Name:                   "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/user-ns/apps/deployments/user-app",
+				AssetType:              "apps.k8s.io/Deployment",
+				Location:               "us-central1",
+				ParentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/user-ns",
+			},
+		}, nil
+	}
+
+	apps, err := GenerateAppsPerNamespace("projects/p1", "mp", []string{"us-central1"}, nil, true)
+	if err != nil {
+		t.Fatalf("GenerateAppsPerNamespace failed: %v", err)
+	}
+
+	// Only 1 app should be generated (user-ns), kube-system should be skipped
+	if len(apps) != 1 {
+		t.Fatalf("expected 1 application (excluding kube-system), got %d: %v", len(apps), apps)
+	}
+
+	for appName := range apps {
+		if strings.HasPrefix(appName, "kube-system") {
+			t.Errorf("expected kube-system to be excluded, but found app %q", appName)
+		}
+	}
+}
+
+func TestDeduplicateAssets(t *testing.T) {
+	assets := []*assetpb.ResourceSearchResult{
+		{Name: "//res1"},
+		{Name: "//res2"},
+		{Name: "//res1"},
+		nil,
+		{Name: ""},
+		{Name: "//res2"},
+		{Name: "//res3"},
+	}
+
+	deduped := deduplicateAssets(assets)
+	if len(deduped) != 3 {
+		t.Fatalf("expected 3 unique assets, got %d", len(deduped))
+	}
+	if deduped[0].Name != "//res1" || deduped[1].Name != "//res2" || deduped[2].Name != "//res3" {
+		t.Errorf("unexpected deduped order/contents: %v", deduped)
+	}
+}
+
+func TestContainsResource(t *testing.T) {
+	list := []ResourceIdentifier{
+		{AppHubID: "id1", URI: "//uri1"},
+		{AppHubID: "id2", URI: "//uri2"},
+	}
+
+	if !containsResource(list, "//uri1") {
+		t.Errorf("expected //uri1 to be found")
+	}
+	if containsResource(list, "//uri3") {
+		t.Errorf("expected //uri3 not to be found")
+	}
+}
+
+func TestGenerateFromAllDeduplication(t *testing.T) {
+	origSearchAssets := searchAssetsFunc
+	origSearchK8s := searchKubernetesFunc
+	origGetClient := getAppHubClientFunc
+	defer func() {
+		searchAssetsFunc = origSearchAssets
+		searchKubernetesFunc = origSearchK8s
+		getAppHubClientFunc = origGetClient
+	}()
+
+	mockClient := &mockAppHubClient{
+		lookupDiscoveredWorkloadFunc: func(ctx context.Context, req *apphubpb.LookupDiscoveredWorkloadRequest, opts ...gax.CallOption) (*apphubpb.LookupDiscoveredWorkloadResponse, error) {
+			return &apphubpb.LookupDiscoveredWorkloadResponse{
+				DiscoveredWorkload: &apphubpb.DiscoveredWorkload{
+					Name: "projects/mp/locations/us-central1/discoveredWorkloads/wl-app",
+				},
+			}, nil
+		},
+	}
+
+	getAppHubClientFunc = func() (appHubClient, error) {
+		return mockClient, nil
+	}
+
+	sharedAsset := &assetpb.ResourceSearchResult{
+		Name:      "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/ns/apps/deployments/app1",
+		AssetType: "apps.k8s.io/Deployment",
+		Location:  "us-central1",
+		Labels: map[string]string{
+			"app": "my-app",
+		},
+	}
+
+	// Labeled search and k8s search return the SAME asset
+	searchAssetsFunc = func(parent, labelKey, labelValue, tagKey, tagValue, contains string, locations []string, assetTypesData []byte) ([]*assetpb.ResourceSearchResult, error) {
+		return []*assetpb.ResourceSearchResult{sharedAsset}, nil
+	}
+	searchKubernetesFunc = func(parent string, locations []string) ([]*assetpb.ResourceSearchResult, error) {
+		return []*assetpb.ResourceSearchResult{sharedAsset}, nil
+	}
+
+	apps, err := GenerateFromAll("projects/p1", "mp", []string{"us-central1"}, nil, true)
+	if err != nil {
+		t.Fatalf("GenerateFromAll failed: %v", err)
+	}
+
+	app, exists := apps["my-app"]
+	if !exists {
+		t.Fatalf("expected app 'my-app' to exist")
+	}
+
+	// Should only have 1 workload, not duplicated
+	if len(app.Workloads) != 1 {
+		t.Fatalf("expected 1 workload after deduplication, got %d", len(app.Workloads))
+	}
+}
+

@@ -93,8 +93,8 @@ func lookupDiscoveredServiceOrWorkload(apiclient appHubClient, projectID, locati
 				}
 				return "", fmt.Errorf("permission denied: ensure the user has the '%s' permission on the project: %w", permission, err)
 			} else if st.Code() == codes.NotFound {
-				// if it is a k8s gateway, try looking again in the global region
-				if strings.Contains(resourceURI, "gateway.networking.k8s.io") {
+				// if it is a k8s gateway, try looking again in the global region if not already in global
+				if strings.Contains(resourceURI, "gateway.networking.k8s.io") && location != "global" {
 					return lookupDiscoveredServiceOrWorkload(apiclient, projectID, "global", resourceURI, appHubType, asset)
 				}
 			}
@@ -205,7 +205,7 @@ func registerServiceWithApplication(apiclient appHubClient, projectID, location,
 
 	// The ID is the 6th element in the path array (0-indexed)
 	id := getServiceWorkloadId(parts[5], truncateName(displayName))
-	unregistered, err := isUnregistered(apiclient, appHubType, projectID, location, id)
+	unregistered, err := isUnregistered(apiclient, appHubType, projectID, location, discoveredName)
 	if err != nil {
 		logger.Error("Error looking up registration: ", "error", err)
 		return err

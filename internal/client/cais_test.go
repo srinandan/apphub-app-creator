@@ -15,6 +15,7 @@
 package client
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -135,6 +136,158 @@ func TestIdentifyServiceOrWorkload(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := identifyServiceOrWorkload(tt.assetType); got != tt.want {
 				t.Errorf("identifyServiceOrWorkload(%q) = %v, want %v", tt.assetType, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetExcludedNamespacesFilter(t *testing.T) {
+	filter := getExcludedNamespacesFilter()
+	if filter == "" {
+		t.Fatalf("expected non-empty excluded namespaces filter")
+	}
+
+	for _, ns := range GKE_EXCLUSION_NAMESPACES {
+		expectedSnippet := "parentFullResourceName : \"" + ns + "\""
+		if !strings.Contains(filter, expectedSnippet) {
+			t.Errorf("expected filter %q to contain %q", filter, expectedSnippet)
+		}
+	}
+}
+
+func TestIsExcludedNamespace(t *testing.T) {
+	tests := []struct {
+		name                   string
+		parentFullResourceName string
+		want                   bool
+	}{
+		{
+			name:                   "empty parent",
+			parentFullResourceName: "",
+			want:                   false,
+		},
+		{
+			name:                   "standard user namespace",
+			parentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/default",
+			want:                   false,
+		},
+		{
+			name:                   "custom application namespace",
+			parentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/frontend-prod",
+			want:                   false,
+		},
+		{
+			name:                   "kube-system namespace",
+			parentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/kube-system",
+			want:                   true,
+		},
+		{
+			name:                   "kube-public namespace",
+			parentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/kube-public",
+			want:                   true,
+		},
+		{
+			name:                   "kube-node-lease namespace",
+			parentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/kube-node-lease",
+			want:                   true,
+		},
+		{
+			name:                   "gke-managed-system namespace",
+			parentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/gke-managed-system",
+			want:                   true,
+		},
+		{
+			name:                   "gke-system namespace",
+			parentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/gke-system",
+			want:                   true,
+		},
+		{
+			name:                   "gmp-system namespace",
+			parentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/gmp-system",
+			want:                   true,
+		},
+		{
+			name:                   "gke-backup namespace",
+			parentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/gke-backup",
+			want:                   true,
+		},
+		{
+			name:                   "gke-connect namespace",
+			parentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/gke-connect",
+			want:                   true,
+		},
+		{
+			name:                   "gke-managed-metrics-server namespace",
+			parentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/gke-managed-metrics-server",
+			want:                   true,
+		},
+		{
+			name:                   "gke-managed-filestorecsi namespace",
+			parentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/gke-managed-filestorecsi",
+			want:                   true,
+		},
+		{
+			name:                   "gke-managed-volumepopulator namespace",
+			parentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/gke-managed-volumepopulator",
+			want:                   true,
+		},
+		{
+			name:                   "gke-managed-dpv2-operator namespace",
+			parentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/gke-managed-dpv2-operator",
+			want:                   true,
+		},
+		{
+			name:                   "gmp-public namespace",
+			parentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/gmp-public",
+			want:                   true,
+		},
+		{
+			name:                   "asm-system namespace",
+			parentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/asm-system",
+			want:                   true,
+		},
+		{
+			name:                   "gatekeeper-system namespace",
+			parentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/gatekeeper-system",
+			want:                   true,
+		},
+		{
+			name:                   "config-management-system namespace",
+			parentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/config-management-system",
+			want:                   true,
+		},
+		{
+			name:                   "anthos-identity-service namespace",
+			parentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/anthos-identity-service",
+			want:                   true,
+		},
+		{
+			name:                   "cert-manager namespace",
+			parentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/cert-manager",
+			want:                   true,
+		},
+		{
+			name:                   "custom kube- prefix namespace",
+			parentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/kube-custom",
+			want:                   true,
+		},
+		{
+			name:                   "custom gke- prefix namespace",
+			parentFullResourceName: "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/namespaces/gke-custom",
+			want:                   true,
+		},
+		{
+			name:                   "bare namespace name kube-system",
+			parentFullResourceName: "kube-system",
+			want:                   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isExcludedNamespace(tt.parentFullResourceName)
+			if got != tt.want {
+				t.Errorf("isExcludedNamespace(%q) = %v, want %v", tt.parentFullResourceName, got, tt.want)
 			}
 		})
 	}

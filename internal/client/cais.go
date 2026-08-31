@@ -90,19 +90,69 @@ var WORKLOADS = []string{
 }
 
 var GKE_EXCLUSION_NAMESPACES = []string{
+	// Core Kubernetes system namespaces
 	"kube-system",
-	"gmp-system",
+	"kube-public",
+	"kube-node-lease",
+	// GKE-managed & addon system namespaces
+	"gke-gmp-system",
+	"gke-connect",
+	"gke-backup",
 	"gke-managed-cim",
-	"gmp-public",
+	"gke-managed-filestorecsi",
+	"gke-managed-metrics-server",
 	"gke-managed-system",
 	"gke-managed-volumepopulator",
-	"kube-node-lease",
-	"kube-public",
+	"gke-managed-dpv2-operator",
+	"gke-system",
+	"gmp-public",
+	"gmp-system",
+	"asm-system",
+	"istio-system",
+	"gatekeeper-system",
+	"config-management-system",
+	"anthos-identity-service",
+	"cert-manager",
 }
 
 var MAX_PAGE int32 = 1000
 
 const K8S_APP_LABEL = "app.kubernetes.io/name"
+
+func getExcludedNamespacesFilter() string {
+	var gkeExlNs []string
+	for _, ns := range GKE_EXCLUSION_NAMESPACES {
+		gkeExlNs = append(gkeExlNs, fmt.Sprintf("parentFullResourceName : \"%s\"", ns))
+	}
+	return fmt.Sprintf("NOT (%s)", strings.Join(gkeExlNs, " OR "))
+}
+
+func isExcludedNamespace(parentFullResourceName string) bool {
+	if parentFullResourceName == "" {
+		return false
+	}
+
+	// Extract the namespace name from the parentFullResourceName
+	ns := parentFullResourceName
+	if idx := strings.LastIndex(parentFullResourceName, "/namespaces/"); idx != -1 {
+		ns = parentFullResourceName[idx+len("/namespaces/"):]
+		if slashIdx := strings.Index(ns, "/"); slashIdx != -1 {
+			ns = ns[:slashIdx]
+		}
+	} else if idx := strings.LastIndex(parentFullResourceName, "/"); idx != -1 {
+		ns = parentFullResourceName[idx+1:]
+	}
+
+	if ns == "default" {
+		return false
+	}
+
+	if strings.HasPrefix(ns, "kube-") || strings.HasPrefix(ns, "gke-") {
+		return true
+	}
+
+	return slices.Contains(GKE_EXCLUSION_NAMESPACES, ns)
+}
 
 // searchAssets queries the Cloud Asset Inventory for resources within a specific project
 // and location
@@ -140,13 +190,12 @@ func searchAssets(parent, labelKey, labelValue, tagKey, tagValue, contains strin
 		} else {
 			queryParts = append(queryParts, fmt.Sprintf("(tagKeys:%s OR effectiveTagKeys:%s)", tagKey, tagKey))
 		}
-		// exclude kubernetes system namespaces
-		for _, ns := range GKE_EXCLUSION_NAMESPACES {
-			queryParts = append(queryParts, fmt.Sprintf("NOT parentFullResourceName : \"%s\"", ns))
-		}
 	} else if contains != "" {
 		queryParts = append(queryParts, fmt.Sprintf("name:%s", contains))
 	}
+
+	// exclude kubernetes system namespaces
+	queryParts = append(queryParts, getExcludedNamespacesFilter())
 
 	fullQuery := strings.Join(queryParts, " AND ")
 
@@ -212,14 +261,9 @@ func searchKubernetes(parent string, locations []string) ([]*assetpb.ResourceSea
 	}
 
 	// exclude kubernetes system namespaces
-	var gkeExlNs []string
-	for _, ns := range GKE_EXCLUSION_NAMESPACES {
-		gkeExlNs = append(gkeExlNs, fmt.Sprintf("parentFullResourceName : \"%s\"", ns))
-	}
+	queryParts = append(queryParts, getExcludedNamespacesFilter())
 
-	queryParts = append(queryParts, fmt.Sprintf("NOT (%s)", strings.Join(gkeExlNs, " OR ")))
-
-	fullQuery := strings.Join(queryParts, " ")
+	fullQuery := strings.Join(queryParts, " AND ")
 
 	logger.Info("Searching scope with query", "scope", parent, "query", fullQuery)
 
@@ -280,12 +324,7 @@ func searchKubernetesApps(parent string, locations []string) ([]*assetpb.Resourc
 	queryParts = append(queryParts, fmt.Sprintf("labels.\"%s\":*", K8S_APP_LABEL))
 
 	// exclude kubernetes system namespaces
-	var gkeExlNs []string
-	for _, ns := range GKE_EXCLUSION_NAMESPACES {
-		gkeExlNs = append(gkeExlNs, fmt.Sprintf("parentFullResourceName : \"%s\"", ns))
-	}
-
-	queryParts = append(queryParts, fmt.Sprintf("NOT (%s)", strings.Join(gkeExlNs, " OR ")))
+	queryParts = append(queryParts, getExcludedNamespacesFilter())
 
 	fullQuery := strings.Join(queryParts, " AND ")
 
@@ -346,22 +385,17 @@ func searchProject(parent string, projectIds, locations []string, assetTypesData
 	}
 
 	// exclude kubernetes system namespaces
-	var gkeExlNs []string
-	for _, ns := range GKE_EXCLUSION_NAMESPACES {
-		gkeExlNs = append(gkeExlNs, fmt.Sprintf("parentFullResourceName : \"%s\"", ns))
-	}
-
-	queryParts = append(queryParts, fmt.Sprintf("NOT (%s)", strings.Join(gkeExlNs, " OR ")))
+	queryParts = append(queryParts, getExcludedNamespacesFilter())
 
 	if len(projectIds) > 1 {
 		var p []string
 		for _, i := range projectIds {
 			p = append(p, fmt.Sprintf("projects/%s", i))
 		}
-		queryParts = append(queryParts, fmt.Sprintf("AND (%s)", strings.Join(p, " OR ")))
+		queryParts = append(queryParts, fmt.Sprintf("(%s)", strings.Join(p, " OR ")))
 	}
 
-	fullQuery := strings.Join(queryParts, " ")
+	fullQuery := strings.Join(queryParts, " AND ")
 
 	logger.Info("Searching scope with query", "scope", parent, "query", fullQuery)
 
