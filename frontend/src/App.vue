@@ -6,6 +6,32 @@ import ResultsViewer from './components/ResultsViewer.vue'
 import JsonEditorModal from './components/JsonEditorModal.vue'
 import ServerSettingsModal from './components/ServerSettingsModal.vue'
 
+// Theme Management ('light' | 'dark' | 'auto')
+const themeSetting = ref(localStorage.getItem('apphub_theme') || 'auto')
+const activeTheme = ref('light')
+let mediaQuery = null
+let handleSchemeChange = null
+
+function resolveTheme(setting) {
+  if (setting === 'light' || setting === 'dark') {
+    return setting
+  }
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
+function applyTheme(setting) {
+  themeSetting.value = setting
+  localStorage.setItem('apphub_theme', setting)
+  const resolved = resolveTheme(setting)
+  activeTheme.value = resolved
+  document.documentElement.setAttribute('data-theme', resolved)
+}
+
+function toggleTheme() {
+  const next = activeTheme.value === 'dark' ? 'light' : 'dark'
+  applyTheme(next)
+}
+
 // Server Connection State
 const serverUrl = ref(localStorage.getItem('apphub_server_url') || 'http://localhost:8080')
 const serverStatus = ref('checking') // 'online' | 'offline' | 'checking'
@@ -235,12 +261,34 @@ function handleSaveServerUrl(newUrl) {
 }
 
 onMounted(() => {
+  applyTheme(themeSetting.value)
+  if (window.matchMedia) {
+    mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    handleSchemeChange = () => {
+      if (themeSetting.value === 'auto') {
+        applyTheme('auto')
+      }
+    }
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleSchemeChange)
+    } else if (mediaQuery.addListener) {
+      mediaQuery.addListener(handleSchemeChange)
+    }
+  }
+
   checkServerHealth()
   healthTimer = setInterval(checkServerHealth, 15000)
 })
 
 onUnmounted(() => {
   if (healthTimer) clearInterval(healthTimer)
+  if (mediaQuery && handleSchemeChange) {
+    if (mediaQuery.removeEventListener) {
+      mediaQuery.removeEventListener('change', handleSchemeChange)
+    } else if (mediaQuery.removeListener) {
+      mediaQuery.removeListener(handleSchemeChange)
+    }
+  }
 })
 </script>
 
@@ -250,9 +298,13 @@ onUnmounted(() => {
     <HeaderNav 
       :server-status="serverStatus"
       :server-url="serverUrl"
+      :active-theme="activeTheme"
+      :theme-setting="themeSetting"
       @open-server-modal="isServerModalOpen = true"
       @open-json-modal="isJsonModalOpen = true"
       @load-sample="loadSamplePreset"
+      @toggle-theme="toggleTheme"
+      @set-theme="applyTheme"
     />
 
     <!-- Main Workspace -->
@@ -326,18 +378,25 @@ onUnmounted(() => {
   flex: 1;
   padding-top: 24px;
   padding-bottom: 48px;
+  min-width: 0;
 }
 
 .workspace-grid {
   display: grid;
-  grid-template-columns: 460px minmax(0, 1fr);
+  grid-template-columns: minmax(340px, 460px) minmax(0, 1fr);
   gap: 24px;
   align-items: start;
+  min-width: 0;
+}
+
+.workspace-column {
+  min-width: 0;
+  width: 100%;
 }
 
 @media (max-width: 1100px) {
   .workspace-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>
