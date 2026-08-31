@@ -439,10 +439,7 @@ func GenerateFromAll(parent, managementProject string, locations []string, attri
 	logger.Info("Found assets that matched tag app* to process", "count", len(taggedAssets))
 	logger.Info("Found assets that matched Kubernetes labels to process", "count", len(kubernetesAssets))
 
-	assets := make([]*assetpb.ResourceSearchResult, 0, len(labeledAssets)+len(taggedAssets)+len(kubernetesAssets))
-	assets = append(assets, labeledAssets...)
-	assets = append(assets, taggedAssets...)
-	assets = append(assets, kubernetesAssets...)
+	assets := deduplicateAssets(append(append(labeledAssets, taggedAssets...), kubernetesAssets...))
 
 	if len(locations) > 1 {
 		appLocation = "global"
@@ -528,6 +525,30 @@ func DeleteApp(managementProject, name string, locations []string) error {
 	return nil
 }
 
+func deduplicateAssets(assets []*assetpb.ResourceSearchResult) []*assetpb.ResourceSearchResult {
+	seen := make(map[string]bool)
+	var unique []*assetpb.ResourceSearchResult
+	for _, asset := range assets {
+		if asset == nil || asset.Name == "" {
+			continue
+		}
+		if !seen[asset.Name] {
+			seen[asset.Name] = true
+			unique = append(unique, asset)
+		}
+	}
+	return unique
+}
+
+func containsResource(list []ResourceIdentifier, uri string) bool {
+	for _, item := range list {
+		if item.URI == uri {
+			return true
+		}
+	}
+	return false
+}
+
 func processAssets(assets []*assetpb.ResourceSearchResult, apphubClient appHubClient, managementProject, appLocation string,
 	attributesData []byte, reportOnly bool,
 	getAppNameFunc func(asset *assetpb.ResourceSearchResult) string,
@@ -539,9 +560,16 @@ func processAssets(assets []*assetpb.ResourceSearchResult, apphubClient appHubCl
 	var err error
 	var assetRegion string
 
+	assets = deduplicateAssets(assets)
+
 	// For each asset returned
 	for _, asset := range assets {
 		logger.Info("Processing asset", "assetName", asset.Name, "assetType", asset.AssetType)
+
+		if isExcludedNamespace(asset.ParentFullResourceName) {
+			logger.Info("Skipping asset in system namespace", "assetName", asset.Name, "parent", asset.ParentFullResourceName)
+			continue
+		}
 
 		var discoveredName, appName string
 
@@ -578,16 +606,18 @@ func processAssets(assets []*assetpb.ResourceSearchResult, apphubClient appHubCl
 			}
 
 			generatedApp.Name = appName
+			resID := ResourceIdentifier{
+				AppHubID: discoveredName[strings.LastIndex(discoveredName, "/")+1:],
+				URI:      asset.Name,
+			}
 			if appHubType == "discoveredService" {
-				generatedApp.Services = append(generatedApp.Services, ResourceIdentifier{
-					AppHubID: discoveredName[strings.LastIndex(discoveredName, "/")+1:],
-					URI:      asset.Name,
-				})
+				if !containsResource(generatedApp.Services, resID.URI) {
+					generatedApp.Services = append(generatedApp.Services, resID)
+				}
 			} else {
-				generatedApp.Workloads = append(generatedApp.Workloads, ResourceIdentifier{
-					AppHubID: discoveredName[strings.LastIndex(discoveredName, "/")+1:],
-					URI:      asset.Name,
-				})
+				if !containsResource(generatedApp.Workloads, resID.URI) {
+					generatedApp.Workloads = append(generatedApp.Workloads, resID)
+				}
 			}
 
 			generatedApplications[appName] = generatedApp

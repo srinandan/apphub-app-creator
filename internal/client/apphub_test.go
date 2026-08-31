@@ -435,3 +435,33 @@ func TestCloseAppHubClient(t *testing.T) {
 	closeAppHubClient(nil)
 	closeAppHubClient(&mockAppHubClient{})
 }
+
+func TestLookupDiscoveredServiceGatewayNotFoundNoInfiniteRecursion(t *testing.T) {
+	lookupCount := 0
+	mockClient := &mockAppHubClient{
+		lookupDiscoveredServiceFunc: func(ctx context.Context, req *apphubpb.LookupDiscoveredServiceRequest, opts ...gax.CallOption) (*apphubpb.LookupDiscoveredServiceResponse, error) {
+			lookupCount++
+			return nil, status.Error(codes.NotFound, "not found")
+		},
+	}
+
+	// 1. Regional lookup should try regional, then global (2 calls total), then fail with error
+	lookupCount = 0
+	_, err := lookupDiscoveredServiceOrWorkload(mockClient, "p1", "us-central1", "//container.googleapis.com/projects/p1/locations/us-central1/clusters/c1/k8s/gateway.networking.k8s.io/gateways/gw1", "discoveredService", nil)
+	if err == nil {
+		t.Fatalf("expected error for not found gateway, got nil")
+	}
+	if lookupCount != 2 {
+		t.Errorf("expected 2 lookup attempts (regional + global fallback), got %d", lookupCount)
+	}
+
+	// 2. Global lookup should try global once (1 call total) and not recurse into global again
+	lookupCount = 0
+	_, err = lookupDiscoveredServiceOrWorkload(mockClient, "p1", "global", "//container.googleapis.com/projects/p1/locations/global/clusters/c1/k8s/gateway.networking.k8s.io/gateways/gw1", "discoveredService", nil)
+	if err == nil {
+		t.Fatalf("expected error for not found global gateway, got nil")
+	}
+	if lookupCount != 1 {
+		t.Errorf("expected 1 lookup attempt for global location, got %d", lookupCount)
+	}
+}
