@@ -55,7 +55,7 @@ Discovery is powered by:
 │   └── SKILL.md                        # CLI skill documentation and execution guides
 ├── Dockerfile                          # Multi-stage container build with distroless non-root image
 ├── .goreleaser.yml                     # GoReleaser configuration for release builds & signing
-├── go.mod                              # Root Go module (v1.26.5) with internal replace directives
+├── go.mod                              # Root Go module (v1.26.6) with internal replace directives
 ├── go.sum                              # Go module checksums
 └── CONTRIBUTING.md                     # Contribution guidelines and CLA details
 ```
@@ -64,7 +64,7 @@ Discovery is powered by:
 
 ## 3. Technology Stack & Dependencies
 
-- **Language**: Go `1.26.5`
+- **Language**: Go `1.26.6`
 - **CLI Framework**: [`github.com/spf13/cobra`](https://github.com/spf13/cobra)
 - **HTTP Routing & Middleware**: [`github.com/gorilla/mux`](https://github.com/gorilla/mux), [`github.com/rs/cors`](https://github.com/rs/cors)
 - **Logging**: Standard Library [`log/slog`](https://pkg.go.dev/log/slog), configured once in `root.go` (via `slog.SetDefault`) and used through `slog.Default()` in each package
@@ -101,7 +101,7 @@ The tool processes resources based on mutually exclusive selectors:
 ## 5. Development Workflow & Commands
 
 ### Prerequisites
-- Go `1.26.5+` installed locally.
+- Go `1.26.6+` installed locally.
 - Google Cloud SDK (`gcloud`) with Application Default Credentials (ADC):
   ```bash
   gcloud auth application-default login

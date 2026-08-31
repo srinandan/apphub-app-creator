@@ -1,6 +1,6 @@
 module client
 
-go 1.26.5
+go 1.26.6
 
 require (
 	cloud.google.com/go/apphub v1.1.0
